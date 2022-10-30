@@ -1,16 +1,124 @@
-\documentclass[a4paper,UKenglish,cleveref, autoref, thm-restate]{lipics-v2021}
+\documentclass[a4paper, UKenglish, cleveref, autoref, thm-restate]{lipics-v2021}
 
 \bibliographystyle{plainurl}
 
-\title{}
+\title{All watched over by machines of loving grace:\\the Supervisionary proof-checking system}
+\titlerunning{System description: the Supervisionary proof-checking kernel}
+
+\ccsdesc{}
+\keywords{Proof assistant design, operating systems, LCF, Supervisionary, capabilities}
 
 \author{Dominic P. Mulligan}{Automated Reasoning Group, Amazon Web Services\footnote{All work done whilst at Arm Research} \and \url{www.dominic-mulligan.co.uk}}{dominic.p.mulligan@gmail.com}{}{}
+\authorrunning{Dominic P. Mulligan}
+
+\Copyright{Dominic P. Mulligan}
+
+\acknowledgements{}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
+Modern operating systems are typically built around a trusted system component called the \emph{kernel} which amongst other things is charged with enforcing system-wide security policies.
+Crucially, this component must be kept isolated from untrusted software at all times, which is facilitated by exploiting machine-oriented notions of separation: private memories, privilege levels, and similar.
+
+Modern proof-checkers are typically built around a trusted system component called the \emph{kernel} which is charged with enforcing system-wide soundness.
+Crucially, this component must be kept isolated from untrusted automation at all times, which is facilitated by exploiting programming-language notions of separation: module-private data structures, type-abstraction, and similar.
+
+Whilst markedly different in purpose, in some essential ways operating system and proof-checker kernels are tasked with the same job, namely enforcing system-wide invariants in the face of unbridled interaction with untrusted code, yet the mechanisms through which the two types of kernel protect themselves are significantly different.
+In this paper, we introduce \emph{Supervisionary}, a prototype programmable proof-checking system for Gordon's HOL that is organized in a manner more reminiscent of operating systems than typical LCF-style proof-checkers.
+In particular, Supervisionary implements a kernel that executes at a relative level of privilege compared to untrusted automation, with trusted and untrusted system components communicating across a limited system call boundary to indirectly manipulate kernel objects managed by the Supervisionary kernel via handles.
+
+Unusually, Supervisionary has no ``metalanguage'' in the LCF sense, as the language used to implement the kernel, and the language used to implement automation, need not be the same.
+Indeed, \emph{any} programming language can be used to implement automation for Supervisionary providing the resulting binary respects the Supervisionary kernel calling convention and binary interface, with no risk to system soundness.
+Moreover, we observe that Supervisionary allows arbitrary programming languages to be endowed with facilities for proof-checking, not only dedicated languages like Idris and Agda.
+Indeed, the handles that Supervisionary uses to reference kernel objects under its management may be thought of as a form of \emph{capability}, in the hardware sense.
+However, unlike typical capabilities, Supervisionary's capabilities are extremely expressive, essentially capturing the full expressive power of HOL, and could be used to enforce fine-grained correctness and security properties at runtime.
 \end{abstract}
+
+\section{Introduction}
+\label{sect.introduction}
+
+\subsection{On operating systems}
+
+Most commodity operating systems---that is, Microsoft Windows and Unix-derivatives\footnote{To guard against quibbling over research operating systems like exokernels and similar which can be argued not to fit this pattern}---fit a common pattern and are architected around a relatively self-contained, trusted component typically called the system \emph{kernel}.
+
+At system initialisation, the kernel takes control of all system resources.
+Thereafter, untrusted user-space applications wishing to make use of a device, for example, must pass through the kernel in order to do so, which can either choose to gate or allow access.
+Moreover, the kernel introduces a process abstraction in user-space, and the kernel tasks itself with ensuring that processes are always isolated from each other.
+The kernel is therefore \emph{the} key component responsible for enforcing system-wide policies.
+It is therefore imperative that the kernel is able to isolate itself sufficiently from untrusted user-space software at all times.
+
+To help the kernel self-isolate, modern microprocessors are equipped with a number of features dedicated to this task.
+One key feature are \emph{exception levels}\footnote{This is Arm-specific terminology.  \emph{Privilege rings} are the analogous feature on Intel platforms} which introduce a notion of \emph{privilege} into the system.
+Here, software executing at a relative level of privilege---for example, an operating system kernel---is allowed to program sensitive system registers, controlling how the system operates, and ``peer in'' and potentially modify the runtime state of software executing at a lower-level of privilege.
+The kernel may read data from, or write data to, a buffer ostensibly within the memory space of an untrusted user-space process, for example.
+In this sense, a kernel can ``supervise'' or ``watch over'' untrusted user-space.
+
+Moreover, modern microprocessors also provide a form of memory management built around page tables.
+These data structures are used for virtualisation of the system memory---granting user-space software the illusion that they own the entire physical address space---and also for memory access and permissions checks.
+By correctly initialising and managing these page tables the kernel's own data structures and scratch space can be kept isolated from untrusted user-space, and user-space processes can be kept isolated from each other.
+
+Note that for systems software, isolation is therefore enforced by low-level machine mechanisms: namely separate address spaces, private parts of memory, and machine-enforced privilege checks on executing software.
+
+Finally the kernel, by necessity, must expose a limited interface to untrusted user-space, which can be used to request access to system resources, or make other similar requests for intercession by the kernel.
+To do this, operating system kernels commonly exposes a suite of \emph{system calls} to untrusted user-space, which can be invoked with dedicated machine instructions.
+On Arm platforms---with which the author is most familiar---these instructions induce a processor exception, which causes a \emph{context switch} into the kernel, which handles the system call appropriately, before exiting the exception and returning the flow of program control back to the calling user-space program.
+In this respect, from user-space's point-of-view, system calls have the appearance of very CISC-like machine instructions, and the operating system kernel essentially presents itself as ``silicon by other means''.
+
+For all of this to work, user-space and the kernel must work together, and adopt a common calling convention describing how arguments and results are passed back-and-forth across the system call interface, agree on a binary interface detailing how system calls are identified and errors are reported, and so on and so forth.
+However, crucially, it is \emph{generally} not the case that the operating system kernel and untrusted user-space applications need be written in the same programming language for this all to work.
+Whilst most operating system kernels are written in some C-language derivative, user-space programs can be written in a variety of languages, and can all make use of system resources exposed by the kernel's system call interface as long as they are capable of adhering to the calling convention and binary interface expected by the kernel.
+Whilst---on Linux at least\footnote{Note that this is not the case on some variants of BSD Unix, for example Apple MacOS, which generally consider the programming interface of the system C library as the interface of the kernel, proper}---this system call interface is abstracted over by the C library, \texttt{libc}, this is generally just a convenience, and user-space software can always invoke system calls directly if wanted by invoking the correct machine instruction and adhering to the appropriate calling convention.
+In this respect, the C-language may have prominence of the favoured language of system implementation, but by-and-large it is not \emph{special} or given an unduly prominent status by the kernel itself.
+
+\subsection{On programmable proof-checkers}
+
+Most modern proof assistants---that is, systems in the wider HOL family, Coq, Matita, PRL, and similar---fit a common pattern and are architected around a relatively self-contained, trusted component typically called the system \emph{kernel}.
+
+The system kernel is the sole component that can authenticate claims as legitimate theorems of the implemented logic.
+Untrusted automation, residing outside of the kernel, must ``drive'' the kernel to derive a theorem on its behalf.
+The kernel is therefore \emph{the} component responsible for ensuring system-wide soundness.
+It is therefore imperative that the kernel is able to isolate itself sufficiently from untrusted automation at all times.
+This method of system organisation is known as \emph{the LCF approach} after the system which introduced it, and is the most common way of organising proof-checking systems today.
+
+Most modern proof assistants tend to be written in a ``metalanguage'', typically a strongly-typed functional programming language, for example an ML derivative such as OCaml or SML.
+These types of programming language offer strong modularity and abstraction features, which the kernel exploits to hide its own data structures from untrusted automation and expose a carefully limited API for proof-construction and manipulation.
+Notably, in an LCF-style system, the \emph{only} mechanism automation has for constructing an authenticated theorem is by using this API, with the inference (or typing) rules of the logic exposed as ``smart constructors'' manipulating an abstract type of theorems or well-typed terms.
+
+Untrusted automation and the system kernel are linked together, and reside side-by-side in the same process when the system is executed.
+As a result, system soundness ultimately rests on the soundness of the implementation metalanguage's type-system---specifically its ability to correctly isolate module-private data structures, that is its ability to correctly enforce type abstraction.
+Moreover, the system metalanguage is, in a sense, unique amongst all programming languages, in that it is the only language capable of interfacing with the kernel, which is, after all, ``just'' a module written within that language like any other.
+Whilst external tools, and automation written in other languages, can interface with the kernel, it must do so indirectly, making use of a shim layer written in the system metalanguage.
+
+\subsection{The Supervisionary system}
+
+In many respects, as the text above intimates, the role of the kernel in an operating system and the role of the kernel in a proof-checker is, abstractly, \emph{essentially} the same.
+Namely, both components must enforce system-wide invariants in the face of, and correctly isolate themselves from, unbridled interaction with untrusted code.
+However, the two mechanisms through which these different types of kernel self-isolate are very different: for operating system kernels\footnote{Barring unikernels like Mirage, which are in some respects quite similar to LCF-style proof-checkers in this regard} self-isolation is enforced using machine-oriented mechanisms; for LCF-style proof-checkers, self-isolation is enforced using programming language-oriented mechanisms.
+
+In this paper we introduce \emph{Supervisionary}, a novel programmable proof-checker for Gordon's HOL.
+(Note that many of the ideas presented henceforth are logic-independent, and though we have chosen to use HOL in our prototype, can be applied to a wide array of other logics with minimal changes.)
+Supervionary's system design is reminiscent 
+
+\section{Kernel design}
+\label{sect.kernel.design}
+
+\subsection{The kernel state}
+
+\subsection{The kernel system call interface}
+
+\section{Programming the kernel}
+\label{sect.programming.the.kernel}
+
+\section{Specifying kernel functions}
+\label{sect.specifying.kernel.functions}
+
+\section{Capabilities on steroids}
+\label{sect.capabilities.on.steroids}
+
+\section{Conclusions}
+\label{sect.conclusions}
 
 \end{document}
