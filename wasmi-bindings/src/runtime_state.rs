@@ -943,7 +943,7 @@ impl WasmiRuntimeState {
     ) -> Result<Handle<tags::Term>, KernelErrorCode>
     where
         T: Into<Name> + Clone,
-        U: Into<Handle<tags::Type>> + Clone,
+        U: Into<Handle<tags::Type>> + Clone + Debug,
         V: Into<Handle<tags::Term>> + Clone,
     {
         self.kernel
@@ -961,7 +961,7 @@ impl WasmiRuntimeState {
     ) -> Result<Handle<tags::Term>, KernelErrorCode>
     where
         T: Into<Name> + Clone,
-        U: Into<Handle<tags::Type>> + Clone,
+        U: Into<Handle<tags::Type>> + Clone + Debug,
         V: Into<Handle<tags::Term>> + Clone,
     {
         self.kernel
@@ -1285,10 +1285,12 @@ impl WasmiRuntimeState {
     where
         T: Into<Handle<tags::Term>>,
         N: Into<Name> + Clone,
-        V: Into<Handle<tags::Type>> + Clone,
+        U: Into<Handle<tags::Type>> + Clone,
         V: Into<Handle<tags::Term>> + Clone,
     {
-        self.kernel.borrow_mut().substitution(handle, substitution)
+        self.kernel
+            .borrow_mut()
+            .term_substitution(handle, substitution)
     }
 
     /// Lifting of the `term_type_substitute` function.
@@ -1300,8 +1302,8 @@ impl WasmiRuntimeState {
     ) -> Result<Handle<tags::Term>, KernelErrorCode>
     where
         T: Into<Handle<tags::Term>>,
-        U: Into<Name> + Clone,
-        V: Into<Handle<tags::Type>> + Clone,
+        U: Into<Name> + Clone + Debug,
+        V: Into<Handle<tags::Type>> + Clone + Debug,
     {
         self.kernel
             .borrow_mut()
@@ -1449,7 +1451,7 @@ impl WasmiRuntimeState {
     ) -> Result<Handle<tags::Theorem>, KernelErrorCode>
     where
         T: Borrow<Handle<tags::Theorem>>,
-        U: Into<Handle<tags::Type>> + Clone,
+        U: Into<Handle<tags::Type>> + Clone + Debug,
     {
         self.kernel
             .borrow_mut()
@@ -1727,18 +1729,20 @@ impl WasmiRuntimeState {
 
     /// Lifting of the `theorem_register_forall_introduction` function.
     #[inline]
-    fn theorem_register_forall_introduction<T, U>(
+    fn theorem_register_forall_introduction<T, U, V>(
         &self,
         theorem_handle: T,
         name: U,
+        _type: V,
     ) -> Result<Handle<tags::Theorem>, KernelErrorCode>
     where
         T: Borrow<Handle<tags::Theorem>>,
         U: Into<Name>,
+        V: Into<Handle<tags::Type>> + Clone + Debug,
     {
         self.kernel
             .borrow_mut()
-            .theorem_register_forall_introduction(theorem_handle, name)
+            .theorem_register_forall_introduction(theorem_handle, name, _type)
     }
 
     /// Lifting of the `theorem_register_forall_elimination` function.
@@ -1801,16 +1805,16 @@ impl WasmiRuntimeState {
         self.kernel.borrow().theorem_split_conclusion(handle)
     }
 
-    /// Lifting of the `theorem_split_hypotheses` function.
+    /// Lifting of the `theorem_split_premisses` function.
     #[inline]
-    fn theorem_split_hypotheses<T>(
+    fn theorem_split_premisses<T>(
         &self,
         handle: T,
     ) -> Result<Vec<Handle<tags::Term>>, KernelErrorCode>
     where
         T: Borrow<Handle<tags::Theorem>>,
     {
-        self.kernel.borrow().theorem_split_hypotheses(handle)
+        self.kernel.borrow().theorem_split_premisses(handle)
     }
 }
 
@@ -2834,7 +2838,7 @@ impl Externals for WasmiRuntimeState {
                     .iter()
                     .zip(types)
                     .zip(ranges)
-                    .map(|((d, t), r)| ((*d, t), r))
+                    .map(|((d, t), r)| ((*d, Handle::from(t as usize)), r))
                     .collect();
 
                 match self.term_substitute(term_handle, substitution) {
@@ -2961,7 +2965,7 @@ impl Externals for WasmiRuntimeState {
                 let result_base_ptr = args.nth::<semantic_types::Pointer>(1);
                 let result_len_ptr = args.nth::<semantic_types::Pointer>(2);
 
-                match self.theorem_split_hypotheses(theorem_handle) {
+                match self.theorem_split_premisses(theorem_handle) {
                     Err(e) => Ok(Some(RuntimeValue::I32(e as i32))),
                     Ok(result) => {
                         self.write_u64(result_len_ptr, result.len() as u64)?;
@@ -3133,15 +3137,22 @@ impl Externals for WasmiRuntimeState {
                 );
                 let dom_ptr = args.nth::<semantic_types::Pointer>(1);
                 let dom_len = args.nth::<semantic_types::Size>(2);
-                let rng_ptr = args.nth::<semantic_types::Pointer>(3);
-                let rng_len = args.nth::<semantic_types::Size>(4);
-                let result_ptr = args.nth::<semantic_types::Pointer>(5);
+                let tau_ptr = args.nth::<semantic_types::Pointer>(3);
+                let tau_len = args.nth::<semantic_types::Pointer>(4);
+                let rng_ptr = args.nth::<semantic_types::Pointer>(5);
+                let rng_len = args.nth::<semantic_types::Size>(6);
+                let result_ptr = args.nth::<semantic_types::Pointer>(7);
 
                 let domains = self.read_u64s(dom_ptr, dom_len as usize)?;
+                let _types = self.read_u64s(tau_ptr, tau_len as usize)?;
                 let ranges = self.read_handles(rng_ptr, rng_len as usize)?;
 
-                let subst =
-                    domains.iter().zip(ranges).map(|(d, r)| (*d, r)).collect();
+                let subst = domains
+                    .iter()
+                    .zip(_types)
+                    .zip(ranges)
+                    .map(|((d, t), r)| ((*d, Handle::from(t as usize)), r))
+                    .collect();
 
                 match self.theorem_register_substitute(theorem_handle, subst) {
                     Err(e) => Ok(Some(RuntimeValue::I32(e as i32))),
@@ -3492,11 +3503,16 @@ impl Externals for WasmiRuntimeState {
                     args.nth::<semantic_types::Handle>(0) as usize,
                 );
                 let name: Name = args.nth::<semantic_types::Name>(1);
-                let result_ptr = args.nth::<semantic_types::Pointer>(2);
+                let _type = Handle::from(
+                    args.nth::<semantic_types::Handle>(2) as usize
+                );
+                let result_ptr = args.nth::<semantic_types::Pointer>(3);
 
-                match self
-                    .theorem_register_forall_introduction(theorem_handle, name)
-                {
+                match self.theorem_register_forall_introduction(
+                    theorem_handle,
+                    name,
+                    _type,
+                ) {
                     Err(e) => Ok(Some(RuntimeValue::I32(e as i32))),
                     Ok(result) => {
                         self.write_handle(result_ptr, result)?;

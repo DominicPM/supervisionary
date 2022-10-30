@@ -110,7 +110,7 @@ pub struct RuntimeState {
     terms: HashMap<Handle<tags::Term>, Term>,
     /// The table of theorems.  The kernel enforces maximal sharing, wherein any
     /// attempt to register a previously-registered theorem (up-to
-    /// alpha-equivalence of the conclusion and hypotheses) means that the
+    /// alpha-equivalence of the conclusion and premisses) means that the
     /// handle pointing to the registered theorem is returned.
     theorems: HashMap<Handle<tags::Theorem>, Theorem>,
 }
@@ -140,7 +140,7 @@ impl RuntimeState {
 
         info!("Generating fresh handle: {}.", next);
 
-        Handle::from(next)
+        return Handle::from(next);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -289,7 +289,8 @@ impl RuntimeState {
     {
         info!(
             "Registering type-former {} applied to arguments {:?}.",
-            former, arguments
+            former.clone(),
+            arguments.clone()
         );
 
         let former = former.into();
@@ -736,7 +737,7 @@ impl RuntimeState {
     fn admit_term(&mut self, trm: Term) -> Handle<tags::Term> {
         for (handle, registered) in self.terms.clone().iter() {
             if self
-                .alpha_equivalent_inner(&trm, registered)
+                .is_alpha_equivalent_inner(&trm, &registered)
                 .expect(DANGLING_HANDLE_ERROR)
             {
                 return handle.clone();
@@ -2028,10 +2029,23 @@ impl RuntimeState {
         }
     }
 
-    pub fn substitution<T, N, U, V>(
+    /// Assuming `handle` points-to a term `r` in the kernel's term-table, and
+    /// `sigma` represents a substitution `σ` consisting of handles
+    /// pointing-to types and terms in the kernel's type-table and term-table,
+    /// respectively, computes the pointwise capture-avoiding substitution
+    /// action on the term, `rσ`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTypeRegistered)` if any of the handles in
+    /// `sigma` do not point-to a registered type in the kernel's type-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if any of the handles in
+    /// `sigma` do not point-to a registered term in the kernel's term-table.
+    pub fn term_substitution<T, N, U, V>(
         &mut self,
-        _handle: T,
-        _sigma: Vec<((N, U), V)>,
+        handle: T,
+        sigma: Vec<((N, U), V)>,
     ) -> Result<Handle<tags::Term>, ErrorCode>
     where
         T: Into<Handle<tags::Term>>,
@@ -2039,9 +2053,27 @@ impl RuntimeState {
         U: Into<Handle<tags::Type>> + Clone,
         V: Into<Handle<tags::Term>> + Clone,
     {
-        unimplemented!()
+        let trm = self.resolve_term_handle(handle.into())?;
+
+        let result = match trm {
+            Term::Constant { constant, tau } => unimplemented!(),
+            Term::Variable { name, tau } => unimplemented!(),
+            Term::Application { left, right } => unimplemented!(),
+            Term::Lambda { name, tau, body } => unimplemented!(),
+        };
+
+        Ok(result)
     }
 
+    /// Assuming `handle` points-to a term `r` in the kernel's term-table, and
+    /// `sigma` represents a type-substitution `σ` consisting of handles
+    /// pointing-to types in the kernel's type-table, computes the pointwise
+    /// type-substitution action on the term, `rσ`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTypeRegistered)` if any of the handles in
+    /// `sigma` do not point-to a registered type in the kernel's type-table.
     pub fn term_type_substitute<T, U, V>(
         &mut self,
         handle: T,
@@ -2052,48 +2084,40 @@ impl RuntimeState {
         U: Into<Name> + Clone + Debug,
         V: Into<Handle<tags::Type>> + Clone + Debug,
     {
-        let handle = handle.into();
+        let trm = self.resolve_term_handle(handle.into())?.clone();
 
-        info!("Substituting types in term with handle {}.", handle);
-
-        let trm = self.resolve_term_handle(&handle)?;
-
-        /* NB: these can fail is `sigma` contains dangling handles. */
         let result = match trm {
-            Term::Variable { name, tau } => {
-                // Appease the borrow-checker gods...
-                let name = *name;
-                let tau = tau.clone();
-                let tau = self.type_substitute(tau, sigma)?;
-                Term::Variable { name, tau }
+            Term::Constant { constant, tau: _ } => {
+                /* NB: this can fail if any of the handles in `sigma` dangle. */
+                self.term_register_constant(constant.clone(), sigma)?
             }
-            Term::Constant { constant, tau } => {
-                // Appease the borrow-checker gods...
-                let constant = constant.clone();
-                let tau = tau.clone();
+            Term::Variable { name, tau } => {
                 let tau = self.type_substitute(tau, sigma)?;
-                Term::Constant { constant, tau }
+                /* NB: shouldn't fail as nothing can dangle here. */
+                self.term_register_variable(name, tau)
+                    .expect(DANGLING_HANDLE_ERROR)
             }
             Term::Application { left, right } => {
-                // Appease the borrow-checker gods...
-                let left = left.clone();
-                let right = right.clone();
-                let left = self.term_type_substitute(left, sigma.clone())?;
-                let right = self.term_type_substitute(right, sigma)?;
-                Term::Application { left, right }
+                let left =
+                    self.term_type_substitute(left.clone(), sigma.clone())?;
+                let right =
+                    self.term_type_substitute(right.clone(), sigma.clone())?;
+                /* NB: shouldn't fail as nothing can dangle here and the types
+                 * should match, as type-substitution preserves typability.
+                 */
+                self.term_register_application(left, right)
+                    .expect(DANGLING_HANDLE_ERROR)
             }
             Term::Lambda { name, tau, body } => {
-                // Appease the borrow-checker gods...
-                let name = *name;
-                let tau = tau.clone();
-                let body = body.clone();
-                let tau = self.type_substitute(tau, sigma.clone())?;
-                let body = self.term_type_substitute(body, sigma)?;
-                Term::Lambda { name, tau, body }
+                let tau = self.type_substitute(tau.clone(), sigma.clone())?;
+                let body = self.term_type_substitute(body.clone(), sigma)?;
+                /* NB: shouldn't fail as nothing can dangle here. */
+                self.term_register_lambda(name.clone(), tau, body)
+                    .expect(DANGLING_HANDLE_ERROR)
             }
         };
 
-        Ok(self.admit_term(result))
+        Ok(result)
     }
 
     /// Computes the type of a term pointed-to by `handle` in the kernel's
@@ -2125,8 +2149,8 @@ impl RuntimeState {
         let trm = trm.clone();
 
         match trm {
-            Term::Variable { tau: _type, .. } => Ok(_type),
-            Term::Constant { tau: _type, .. } => Ok(_type),
+            Term::Variable { tau: _type, .. } => Ok(_type.clone()),
+            Term::Constant { tau: _type, .. } => Ok(_type.clone()),
             Term::Application { left, right } => {
                 let ltau = self.term_type_infer(&left)?;
                 let rtau = self.term_type_infer(&right)?;
@@ -2176,27 +2200,23 @@ impl RuntimeState {
         Ok(self.term_type_infer(handle)? == PREALLOCATED_HANDLE_TYPE_PROP)
     }
 
-    /// Permutes the variable `a` and `b` throughout the term pointed-to by
+    /// Permutes the names `a` and `b` throughout the term pointed-to by
     /// `handle` in the kernel's term-table.  Leaves all other names fixed.
     ///
     /// # Errors
     ///
     /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if `handle` does not
     /// point-to a term in the runtime state's term-table.
-    fn swap<T, U, V, Q, R>(
+    fn swap<T, U, V>(
         &mut self,
         handle: T,
         a: U,
-        atau: V,
-        b: Q,
-        btau: R,
+        b: V,
     ) -> Result<Handle<tags::Term>, ErrorCode>
     where
         T: Borrow<Handle<tags::Term>> + Clone,
         U: Into<Name> + Clone,
-        V: Borrow<Handle<tags::Type>>,
-        Q: Into<Name> + Clone,
-        R: Borrow<Handle<tags::Type>>,
+        V: Into<Name> + Clone,
     {
         info!(
             "Swapping name: {} for name: {} in term with handle: {}.",
@@ -2206,26 +2226,24 @@ impl RuntimeState {
         );
 
         let trm = self.resolve_term_handle(handle.clone())?.clone();
-        let atau = atau.borrow();
-        let btau = btau.borrow();
 
         match trm {
             Term::Variable { name, tau: _type } => {
                 if name == a.clone().into() {
-                    Ok(self.admit_term(Term::variable(b, _type)))
+                    Ok(self.admit_term(Term::variable(b, _type.clone())))
                 } else if name == b.into() {
-                    Ok(self.admit_term(Term::variable(a, _type)))
+                    Ok(self.admit_term(Term::variable(a, _type.clone())))
                 } else {
                     Ok(handle.borrow().clone())
                 }
             }
-            Term::Constant { .. } => Ok(handle.borrow().clone()),
+            Term::Constant { .. } => Ok(handle.clone().borrow().clone()),
             Term::Application { left, right } => {
                 let left = self
-                    .swap(&left, a.clone(), atau, b.clone(), btau)
+                    .swap(&left, a.clone(), b.clone())
                     .unwrap_or_else(|_e| panic!("{}", DANGLING_HANDLE_ERROR));
                 let right = self
-                    .swap(&right, a, atau, b, btau)
+                    .swap(&right, a, b)
                     .unwrap_or_else(|_e| panic!("{}", DANGLING_HANDLE_ERROR));
 
                 Ok(self.admit_term(Term::application(left, right)))
@@ -2236,20 +2254,20 @@ impl RuntimeState {
                 body,
             } => {
                 let body = self
-                    .swap(&body, a.clone(), atau, b.clone(), btau)
+                    .swap(&body, a.clone(), b.clone())
                     .unwrap_or_else(|_e| panic!("{}", DANGLING_HANDLE_ERROR));
-                if name == a.clone().into() && &_type == atau {
-                    Ok(self.admit_term(Term::lambda(b, _type, body)))
-                } else if name == b.into() && &_type == btau {
-                    Ok(self.admit_term(Term::lambda(a, _type, body)))
+                if name == a.clone().into() {
+                    Ok(self.admit_term(Term::lambda(b, _type.clone(), body)))
+                } else if name == b.into() {
+                    Ok(self.admit_term(Term::lambda(a, _type.clone(), body)))
                 } else {
-                    Ok(self.admit_term(Term::lambda(name, _type, body)))
+                    Ok(self.admit_term(Term::lambda(name, _type.clone(), body)))
                 }
             }
         }
     }
 
-    fn alpha_equivalent_inner(
+    fn is_alpha_equivalent_inner(
         &mut self,
         left: &Term,
         right: &Term,
@@ -2305,9 +2323,9 @@ impl RuntimeState {
                     body: body1,
                 },
             ) => {
-                if name0 == name1 && _type0 == _type1 {
+                if name0 == name1 {
                     let body = self.is_alpha_equivalent(body0, body1)?;
-                    Ok(body)
+                    Ok(body && _type0 == _type1)
                 } else if self
                     .term_free_variables(body1)
                     .unwrap_or_else(|_e| panic!("{}", DANGLING_HANDLE_ERROR))
@@ -2316,7 +2334,7 @@ impl RuntimeState {
                     Ok(false)
                 } else {
                     let body1 = self
-                        .swap(body1, *name0, _type0, *name1, _type1)
+                        .swap(body1, name0.clone(), name1.clone())
                         .unwrap_or_else(|_e| {
                             panic!("{}", DANGLING_HANDLE_ERROR)
                         });
@@ -2358,7 +2376,7 @@ impl RuntimeState {
         let left = self.resolve_term_handle(left)?.clone();
         let right = self.resolve_term_handle(right)?.clone();
 
-        self.alpha_equivalent_inner(&left, &right)
+        self.is_alpha_equivalent_inner(&left, &right)
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -2373,8 +2391,9 @@ impl RuntimeState {
     ///
     /// Callers are expected to:
     /// 1. Ensure that `thm` is well-formed before calling this function,
-    /// 2. The hypotheses of the theorem `thm` should be sorted prior to calling
-    /// this function, so that theorems can be compared for structural equality.
+    /// 2. The premisses of the theorem `thm` should be sorted and deduplicated
+    /// prior to calling this function, so that theorems can be compared for
+    /// structural equality.
     fn admit_theorem(&mut self, thm: Theorem) -> Handle<tags::Theorem> {
         let fresh = self.issue_handle();
         self.theorems.insert(fresh.clone(), thm);
@@ -2459,7 +2478,9 @@ impl RuntimeState {
             .resolve_theorem_handle(handle)
             .ok_or(ErrorCode::NoSuchTheoremRegistered)?
             .premisses()
-            .to_vec())
+            .iter()
+            .cloned()
+            .collect())
     }
 
     /// Registers a new theorem object, `{ɸ} ⊢ ɸ` in the kernel's theorem-table
@@ -2552,13 +2573,12 @@ impl RuntimeState {
     ///
     /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if `trm` does not
     /// point-to a registered term in the runtime state's term-table.
-    pub fn theorem_register_reflexivity<T, U>(
+    pub fn theorem_register_reflexivity<T>(
         &mut self,
-        trm: U,
+        trm: T,
     ) -> Result<Handle<tags::Theorem>, ErrorCode>
     where
         T: Into<Handle<tags::Term>> + Clone,
-        U: Into<Handle<tags::Term>> + Clone,
     {
         let trm = trm.into();
 
@@ -2607,7 +2627,7 @@ impl RuntimeState {
 
         let (left, right) = self.term_split_equality(thm.conclusion())?;
 
-        // Appease the borrow-checker gods...
+        // NB: satisfy the borrow checker.
         let left = left.clone();
         let right = right.clone();
 
@@ -2618,9 +2638,9 @@ impl RuntimeState {
         let conclusion = self
             .term_register_equality(right, left)
             .expect(PRIMITIVE_CONSTRUCTION_ERROR);
-        let premisses = thm.premisses().clone();
 
-        Ok(self.admit_theorem(Theorem::new(premisses, conclusion)))
+        Ok(self
+            .admit_theorem(Theorem::new(thm.premisses().clone(), conclusion)))
     }
 
     /// Registers a new theorem object, `Γ ∪ Δ ⊢ r = t` in the kernel's
@@ -2672,7 +2692,7 @@ impl RuntimeState {
             return Err(ErrorCode::ShapeMismatch);
         }
 
-        // Appease the borrow-checker gods...
+        // NB: satisfy the borrow checker.
         let left = left.clone();
         let right = right.clone();
 
@@ -2737,7 +2757,7 @@ impl RuntimeState {
         let (arg_left, arg_right) =
             self.term_split_equality(right.conclusion())?;
 
-        // Appease the borrow-checker gods...
+        // NB: satisfy the borrow checker.
         let fun_left = fun_left.clone();
         let fun_right = fun_right.clone();
         let arg_left = arg_left.clone();
@@ -2791,7 +2811,9 @@ impl RuntimeState {
 
         let (left, right) = self.term_split_equality(thm.conclusion())?;
 
-        // Appease the borrow-checker gods...
+        // NB: satisfy the borrow checker.
+        let name = name.clone();
+        let tau = tau.clone();
         let left = left.clone();
         let right = right.clone();
 
@@ -2800,10 +2822,10 @@ impl RuntimeState {
         // that everything is well-typed, and that both side of the equality
         // have the same type.
         let lhandle = self
-            .term_register_lambda(name.clone(), tau.clone(), left)
+            .term_register_lambda(name.clone(), tau.clone(), left.clone())
             .expect(PRIMITIVE_CONSTRUCTION_ERROR);
         let rhandle = self
-            .term_register_lambda(name, tau, right)
+            .term_register_lambda(name, tau, right.clone())
             .expect(PRIMITIVE_CONSTRUCTION_ERROR);
         let conclusion = self
             .term_register_equality(lhandle, rhandle)
@@ -2841,9 +2863,9 @@ impl RuntimeState {
 
         let (name, _type, body) = self.term_split_lambda(lhs)?;
 
-        // Appease the borrow-checker gods...
+        // NB: satisfy the borrow checker.
         let body = body.clone();
-        let name = *name;
+        let name = name.clone();
         let _type = _type.clone();
         let rhs = rhs.clone();
 
@@ -2852,7 +2874,7 @@ impl RuntimeState {
         // of HOL asserts that the construction of the equality, below, is
         // well-typed.
         let subst = self
-            .substitution(body, vec![((name, _type), rhs)])
+            .term_substitution(body, vec![((name, _type), rhs)])
             .expect(DANGLING_HANDLE_ERROR);
         let conclusion = self
             .term_register_equality(application, subst)
@@ -2913,7 +2935,7 @@ impl RuntimeState {
             return Err(ErrorCode::ShapeMismatch);
         }
 
-        // Appease the borrow-checker gods...
+        // NB: satisfy the borrow checker.
         let body = body.clone();
 
         let conclusion = self
@@ -2971,7 +2993,7 @@ impl RuntimeState {
         premisses.sort();
         premisses.dedup();
 
-        // Appease the borrow-checker gods...
+        // NB: satisfy the borrow checker.
         let left0 = left0.clone();
         let right1 = right1.clone();
 
@@ -3014,12 +3036,12 @@ impl RuntimeState {
 
         let (left, right) = self.term_split_equality(thm.conclusion())?;
 
-        // Appease the borrow-checker gods...
+        // NB: satisfy the borrow checker.
         let left = left.clone();
         let right = right.clone();
 
         if !self
-            .term_type_is_proposition(left.clone())
+            .term_type_is_proposition(&left)
             .expect(DANGLING_HANDLE_ERROR)
         {
             return Err(ErrorCode::NotAProposition);
@@ -3043,12 +3065,9 @@ impl RuntimeState {
     ///
     /// Does not error: returns `Result<Handle<tags::Theorem>, ErrorCode>` for
     /// uniformity with other axioms/rules.
-    pub fn theorem_register_truth_introduction<T>(
+    pub fn theorem_register_truth_introduction(
         &mut self,
-    ) -> Result<Handle<tags::Theorem>, ErrorCode>
-    where
-        T: Into<Handle<tags::Term>> + Clone,
-    {
+    ) -> Result<Handle<tags::Theorem>, ErrorCode> {
         let identity: Vec<(Name, Handle<tags::Type>)> = Vec::new();
 
         // NB: this should never fail if the initial theory is properly
@@ -3120,6 +3139,18 @@ impl RuntimeState {
             .admit_theorem(Theorem::new(thm.premisses().clone(), conclusion)))
     }
 
+    /// Registers a new theorem object, `Γ ∪ Δ ⊢ ɸ ∧ ψ` in the kernel's
+    /// theorem-table iff `left` points-to the theorem `Γ ⊢ ɸ` in the kernel's
+    /// theorem-table and `right` points-to the theorem `Δ ⊢ ψ` in the kernel's
+    /// theorem-table.  Returns `Ok(handle)` if this process is successful,
+    /// where `handle` is the newly-allocated handle pointing-to the new theorem
+    /// object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `left` or `right`
+    /// does not point-to a registered theorem in the runtime state's
+    /// theorem-table.
     pub fn theorem_register_conjunction_introduction<T, U>(
         &mut self,
         left: T,
@@ -3138,10 +3169,15 @@ impl RuntimeState {
             .ok_or(ErrorCode::NoSuchTheoremRegistered)?
             .clone();
 
-        let conclusion = self.term_register_conjunction(
-            left.conclusion().clone(),
-            right.conclusion().clone(),
-        )?;
+        /* NB: this should never fail as both `left` and `right` should be
+         * formulae if they are registered in the kernel's tables.
+         */
+        let conclusion = self
+            .term_register_conjunction(
+                left.conclusion().clone(),
+                right.conclusion().clone(),
+            )
+            .expect(PRIMITIVE_CONSTRUCTION_ERROR);
 
         let mut premisses = left.premisses().clone();
         premisses.append(&mut right.premisses().clone());
@@ -3151,6 +3187,19 @@ impl RuntimeState {
         Ok(self.admit_theorem(Theorem::new(premisses, conclusion)))
     }
 
+    /// Registers a new theorem object, `Γ ⊢ ɸ` in the kernel's
+    /// theorem-table iff `handle` points-to the theorem `Γ ⊢ ɸ ∧ ψ` in the
+    /// kernel's theorem-table.  Returns `Ok(handle)` if this process is
+    /// successful, where `handle` is the newly-allocated handle pointing-to the
+    /// new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `handle` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::ShapeMismatch)` if `handle` does not point-to a
+    /// conjunctive formula.
     pub fn theorem_register_conjunction_left_elimination<T>(
         &mut self,
         handle: T,
@@ -3167,12 +3216,25 @@ impl RuntimeState {
             .term_split_conjunction(thm.conclusion())
             .map_err(|_e| ErrorCode::ShapeMismatch)?;
 
-        // Appease the borrow-checker gods...
-        let left = left.clone();
+        let conclusion = left.clone();
 
-        Ok(self.admit_theorem(Theorem::new(thm.premisses().clone(), left)))
+        Ok(self
+            .admit_theorem(Theorem::new(thm.premisses().clone(), conclusion)))
     }
 
+    /// Registers a new theorem object, `Γ ⊢ ψ` in the kernel's
+    /// theorem-table iff `handle` points-to the theorem `Γ ⊢ ɸ ∧ ψ` in the
+    /// kernel's theorem-table.  Returns `Ok(handle)` if this process is
+    /// successful, where `handle` is the newly-allocated handle pointing-to the
+    /// new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `handle` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::ShapeMismatch)` if `handle` does not point-to a
+    /// conjunctive formula.
     pub fn theorem_register_conjunction_right_elimination<T>(
         &mut self,
         handle: T,
@@ -3189,13 +3251,29 @@ impl RuntimeState {
             .term_split_conjunction(thm.conclusion())
             .map_err(|_e| ErrorCode::ShapeMismatch)?;
 
-        // Appease the borrow-checker gods...
         let conclusion = right.clone();
 
         Ok(self
             .admit_theorem(Theorem::new(thm.premisses().clone(), conclusion)))
     }
 
+    /// Registers a new theorem object, `Γ ⊢ ɸ ∨ ψ` in the kernel's
+    /// theorem-table iff `handle` points-to the theorem `Γ ⊢ ɸ` in the
+    /// kernel's theorem-table and `term` points-to the formula `ψ` in the
+    /// kernel's term-table.  Returns `Ok(handle)` if this process is
+    /// successful, where `handle` is the newly-allocated handle pointing-to the
+    /// new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `handle` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if `term` does not
+    /// point-to a registered term in the runtime state's term-table.
+    ///
+    /// Returns `Err(ErrorCode::NotAProposition)` if `term` does not point-to a
+    /// term with propositional type.
     pub fn theorem_register_disjunction_left_introduction<T, U>(
         &mut self,
         handle: T,
@@ -3214,13 +3292,34 @@ impl RuntimeState {
             return Err(ErrorCode::NotAProposition);
         }
 
-        let conclusion =
-            self.term_register_disjunction(thm.conclusion().clone(), term)?;
+        /* NB: this should never fail as both terms are now known to have
+         * propositional type.
+         */
+        let conclusion = self
+            .term_register_disjunction(thm.conclusion().clone(), term)
+            .expect(PRIMITIVE_CONSTRUCTION_ERROR);
+        let premisses = thm.premisses().clone();
 
-        Ok(self
-            .admit_theorem(Theorem::new(thm.premisses().clone(), conclusion)))
+        Ok(self.admit_theorem(Theorem::new(premisses, conclusion)))
     }
 
+    /// Registers a new theorem object, `Γ ⊢ ɸ ∨ ψ` in the kernel's
+    /// theorem-table iff `handle` points-to the theorem `Γ ⊢ ψ` in the
+    /// kernel's theorem-table and `term` points-to the formula `ɸ` in the
+    /// kernel's term-table.  Returns `Ok(handle)` if this process is
+    /// successful, where `handle` is the newly-allocated handle pointing-to the
+    /// new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `handle` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if `term` does not
+    /// point-to a registered term in the runtime state's term-table.
+    ///
+    /// Returns `Err(ErrorCode::NotAProposition)` if `term` does not point-to a
+    /// term with propositional type.
     pub fn theorem_register_disjunction_right_introduction<T, U>(
         &mut self,
         handle: T,
@@ -3239,13 +3338,36 @@ impl RuntimeState {
             return Err(ErrorCode::NotAProposition);
         }
 
-        let conclusion =
-            self.term_register_disjunction(term, thm.conclusion().clone())?;
+        /* NB: this should never fail as both terms are now known to have
+         * propositional type.
+         */
+        let conclusion = self
+            .term_register_disjunction(term, thm.conclusion().clone())
+            .expect(PRIMITIVE_CONSTRUCTION_ERROR);
 
         Ok(self
             .admit_theorem(Theorem::new(thm.premisses().clone(), conclusion)))
     }
 
+    /// Registers a new theorem object, `Γ ⊢ ξ` in the kernel's
+    /// theorem-table iff `left` points-to the theorem `Γ ⊢ ɸ ∨ ψ` in the
+    /// kernel's theorem-table, `mid` points-to the theorem `Γ ∪ {ɸ} ⊢ ξ`, and
+    /// `right` points-to the theorem `Γ ∪ {ψ} ⊢ ξ`.  Returns `Ok(handle)` if
+    /// this process is successful, where `handle` is the newly-allocated handle
+    /// pointing-to the new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `left`, `mid`, or
+    /// `right` do not point-to a registered theorem in the runtime state's
+    /// theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::ShapeMismatch)` if `left` does not
+    /// point-to a disjunctive theorem in the runtime state's theorem-table, or
+    /// if the contexts of the theorem's pointed-to by `mid` and `right` do not
+    /// contain the formulae within the disjunction, or if ignoring those
+    /// formulae, the remainder of the contexts are not setwise equal with each
+    /// other and with the context of the theorem pointed-to by `left`.
     pub fn theorem_register_disjunction_elimination<T, U, V>(
         &mut self,
         left: T,
@@ -3270,7 +3392,9 @@ impl RuntimeState {
             .ok_or(ErrorCode::NoSuchTheoremRegistered)?
             .clone();
 
-        let (phi, psi) = self.term_split_disjunction(left.conclusion())?;
+        let (phi, psi) = self
+            .term_split_disjunction(left.conclusion())
+            .map_err(|_e| ErrorCode::ShapeMismatch)?;
 
         if mid.conclusion() != right.conclusion() {
             return Err(ErrorCode::ShapeMismatch);
@@ -3304,6 +3428,25 @@ impl RuntimeState {
         )))
     }
 
+    /// Registers a new theorem object, `Γ ⊢ ɸ ⟶ ψ` in the kernel's
+    /// theorem-table iff `handle` points-to the theorem `Γ ∪ {ɸ} ⊢ ψ` in the
+    /// kernel's theorem-table, and `intro` points-to the term `ɸ`.  Returns
+    /// `Ok(handle)` if this process is successful, where `handle` is the
+    /// newly-allocated handle pointing-to the new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `handle` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if `intro` does not
+    /// point-to a registered term in the runtime state's term-table.
+    ///
+    /// Returns `Err(ErrorCode::NotAProposition)` if `intro` does not point-to a
+    /// term with propositional type in the runtime state's term-table.
+    ///
+    /// Returns `Err(ErrorCode::ShapeMismatch)` if the premisses of the theorem
+    /// pointed-to by `handle` do not contain the term pointed-to by `intro`.
     pub fn theorem_register_implication_introduction<T, U>(
         &mut self,
         handle: T,
@@ -3313,33 +3456,60 @@ impl RuntimeState {
         T: Borrow<Handle<tags::Theorem>>,
         U: Into<Handle<tags::Term>> + Clone,
     {
+        let handle = handle.borrow();
+        let intro = intro.into();
+
         let thm = self
             .resolve_theorem_handle(handle)
             .ok_or(ErrorCode::NoSuchTheoremRegistered)?
             .clone();
 
-        if !self.term_type_is_proposition(intro.clone().into())? {
+        if !self.term_type_is_proposition(&intro)? {
             return Err(ErrorCode::NotAProposition);
         }
 
-        if !thm.premisses().contains(&intro.clone().into()) {
+        if !thm.premisses().contains(&intro) {
             return Err(ErrorCode::ShapeMismatch);
         }
 
-        let conclusion = self.term_register_implication(
-            intro.clone(),
-            thm.conclusion().clone(),
-        )?;
-        let premisses = thm
+        /* NB: this should never fail as we've checked all objects are of the
+         * appropriate type, here.
+         */
+        let conclusion = self
+            .term_register_implication(intro.clone(), thm.conclusion().clone())
+            .expect(PRIMITIVE_CONSTRUCTION_ERROR);
+
+        /* XXX: does `collect` preserve ordering? */
+        let mut premisses: Vec<Handle<tags::Term>> = thm
             .premisses()
             .iter()
-            .filter(|h| **h != intro.clone().into())
+            .filter(|h| *h != &intro)
             .cloned()
             .collect();
+
+        /* NB: no need to deduplicate, as filtering a deduplicated list results
+         * in another deduplicated list.
+         */
+        premisses.sort();
 
         Ok(self.admit_theorem(Theorem::new(premisses, conclusion)))
     }
 
+    /// Registers a new theorem object, `Γ ∪ Δ ⊢ ψ` in the kernel's
+    /// theorem-table iff `left` points-to the theorem `Γ ⊢ ɸ ⟶ ψ` in the
+    /// kernel's theorem-table, and `right` points-to the theorem `Δ ⊢ ɸ`.
+    /// Returns `Ok(handle)` if this process is successful, where `handle` is
+    /// the newly-allocated handle pointing-to the new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `left` or `right`
+    /// do not point-to a registered theorem in the runtime state's
+    /// theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::ShapeMismatch)` if `right` is not an
+    /// implicational theorem or if `left` does not match the left-hand-side of
+    /// the implication in the theorem pointed-to by `right`.
     pub fn theorem_register_implication_elimination<T, U>(
         &mut self,
         left: T,
@@ -3366,17 +3536,37 @@ impl RuntimeState {
             return Err(ErrorCode::ShapeMismatch);
         }
 
-        // Appease the borrow-checker gods...
-        let conc = conc.clone();
-
         let mut premisses = left.premisses().clone();
         premisses.append(&mut right.premisses().clone());
         premisses.sort();
         premisses.dedup();
 
+        // NB: satisfy the borrow checker.
+        let conc = conc.clone();
+
         Ok(self.admit_theorem(Theorem::new(premisses, conc)))
     }
 
+    /// Registers a new theorem object, `Γσ ⊢ ɸσ`, in the kernel's theorem-table
+    /// iff `handle` points-to the theorem `Γ ⊢ ɸ` in the kernels' theorem-table
+    /// and `sigma` is a substitution consisting of handles pointing-to terms
+    /// and types registered in the kernel's term-table and type-table,
+    /// respectively.  Returns `Ok(handle)` if this process is successful, where
+    /// `handle` is the newly-allocated handle pointing-to the new theorem
+    /// object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `handle` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTypeRegistered)` if `sigma` contains a
+    /// handle that does not point-to a registered type in the runtime state's
+    /// type-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if `sigma` contains a
+    /// handle that does not point-to a registered term in the runtime state's
+    /// term-table.
     pub fn theorem_register_substitute<T, U, V>(
         &mut self,
         handle: T,
@@ -3393,16 +3583,38 @@ impl RuntimeState {
             .clone();
 
         let conclusion =
-            self.substitution(thm.conclusion().clone(), sigma.clone())?;
+            self.term_substitution(thm.conclusion().clone(), sigma.clone())?;
         let mut premisses = vec![];
 
         for h in thm.premisses().iter().cloned() {
-            premisses.push(self.substitution(h, sigma.clone())?);
+            premisses.push(self.term_substitution(h, sigma.clone())?);
         }
+
+        /* NB: we've modified the premisses, so make sure they're deduplicated
+         * and sorted to match our kernel invariant.
+         */
+        premisses.sort();
+        premisses.dedup();
 
         Ok(self.admit_theorem(Theorem::new(premisses, conclusion)))
     }
 
+    /// Registers a new theorem object, `Γσ ⊢ ɸσ`, in the kernel's theorem-table
+    /// iff `handle` points-to the theorem `Γ ⊢ ɸ` in the kernels' theorem-table
+    /// and `sigma` is a type-substitution consisting of handles pointing-to
+    /// types registered in the kernel's term-table and type-table,
+    /// respectively.  Returns `Ok(handle)` if this process is successful, where
+    /// `handle` is the newly-allocated handle pointing-to the new theorem
+    /// object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `handle` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTypeRegistered)` if `sigma` contains a
+    /// handle that does not point-to a registered type in the runtime state's
+    /// type-table.
     pub fn theorem_register_type_substitute<T, U>(
         &mut self,
         handle: T,
@@ -3425,9 +3637,34 @@ impl RuntimeState {
             premisses.push(self.term_type_substitute(h, sigma.clone())?);
         }
 
+        /* NB: we've modified the premisses, so make sure they're deduplicated
+         * and sorted to match our kernel invariant.
+         */
+        premisses.sort();
+        premisses.dedup();
+
         Ok(self.admit_theorem(Theorem::new(premisses, conclusion)))
     }
 
+    /// Registers a new theorem object, `Γ ⊢ ¬ɸ` in the kernel's
+    /// theorem-table iff `handle` points-to the theorem `Γ ∪ {ɸ} ⊢ False` in
+    /// the kernel's theorem-table, and `intro` points-to the term `ɸ`.  Returns
+    /// `Ok(handle)` if this process is successful, where `handle` is the
+    /// newly-allocated handle pointing-to the new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `handle` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if `intro` does not
+    /// point-to a registered term in the runtime state's term-table.
+    ///
+    /// Returns `Err(ErrorCode::NotAProposition)` if `intro` does not point-to a
+    /// term with propositional type in the runtime state's term-table.
+    ///
+    /// Returns `Err(ErrorCode::ShapeMismatch)` if the premisses of the theorem
+    /// pointed-to by `handle` do not contain the term pointed-to by `intro`.
     pub fn theorem_register_negation_introduction<T, U>(
         &mut self,
         thm: T,
@@ -3449,16 +3686,23 @@ impl RuntimeState {
             return Err(ErrorCode::NotAProposition);
         }
 
-        if !thm.premisses().contains(&trm) {
-            return Err(ErrorCode::ShapeMismatch);
-        }
-
-        let premisses = thm
+        /* XXX: is `collect` guaranteed to preserve ordering? */
+        let mut premisses: Vec<Handle<tags::Term>> = thm
             .premisses()
             .iter()
             .filter(|e| *e != &trm)
             .cloned()
             .collect();
+
+        /* NB: no deduplication needed, here, as filtering a deduplicated list
+         * is safe.
+         */
+        premisses.sort();
+
+        if !thm.premisses().contains(&trm) {
+            return Err(ErrorCode::ShapeMismatch);
+        }
+
         let conclusion = self
             .term_register_negation(trm)
             .expect(PRIMITIVE_CONSTRUCTION_ERROR);
@@ -3466,29 +3710,44 @@ impl RuntimeState {
         Ok(self.admit_theorem(Theorem::new(premisses, conclusion)))
     }
 
+    /// Registers a new theorem object, `Γ ∪ Δ ⊢ False` in the kernel's
+    /// theorem-table iff `left` points-to the theorem `Γ ⊢ ɸ` in the
+    /// kernel's theorem-table, and `right` points-to the theorem `Δ ⊢ ¬ɸ`.
+    /// Returns `Ok(handle)` if this process is successful, where `handle` is
+    /// the newly-allocated handle pointing-to the new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `left` or `right`
+    /// do not point-to a registered theorem in the runtime state's
+    /// theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::ShapeMismatch)` if `right` is not an
+    /// negative theorem or if `left` does not match the body of the negation in
+    /// the theorem pointed-to by `right`.
     pub fn theorem_register_negation_elimination<T, U>(
         &mut self,
-        left_handle: T,
-        right_handle: U,
+        left: T,
+        right: U,
     ) -> Result<Handle<tags::Theorem>, ErrorCode>
     where
         T: Borrow<Handle<tags::Theorem>>,
         U: Borrow<Handle<tags::Theorem>>,
     {
         let left = self
-            .resolve_theorem_handle(left_handle)
-            .ok_or(ErrorCode::NoSuchTheoremRegistered)?
-            .clone();
+            .resolve_theorem_handle(left)
+            .ok_or(ErrorCode::NoSuchTheoremRegistered)
+            .clone()?;
         let right = self
-            .resolve_theorem_handle(right_handle)
-            .ok_or(ErrorCode::NoSuchTheoremRegistered)?
-            .clone();
+            .resolve_theorem_handle(right)
+            .ok_or(ErrorCode::NoSuchTheoremRegistered)
+            .clone()?;
 
-        let right_concl = self
+        let inner = self
             .term_split_negation(right.conclusion())
-            .map_err(|_| ErrorCode::ShapeMismatch)?;
+            .map_err(|_e| ErrorCode::ShapeMismatch)?;
 
-        if left.conclusion() == right_concl {
+        if left.conclusion() != inner {
             return Err(ErrorCode::ShapeMismatch);
         }
 
@@ -3503,6 +3762,27 @@ impl RuntimeState {
         )))
     }
 
+    /// Registers a new theorem object, `Γ ⊢ ɸ[x:τ ↦ t]` in the kernel's
+    /// theorem-table iff `handle` points-to the theorem `Γ ⊢ ∀x:τ. ɸ` in the
+    /// kernel's theorem-table, and `trm` points-to the term `t` with type τ.
+    /// Returns `Ok(handle)` if this process is successful, where `handle` is
+    /// the newly-allocated handle pointing-to the new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `thm` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if `trm` does not
+    /// point-to a registered term in the runtime state's term-table.
+    ///
+    /// Returns `Err(ErrorCode::DomainTypeMismatch)` if type-inference for
+    /// `trm` fails due to a domain-type mismatch or if the type of the term
+    /// pointed-to by `trm` does not have the same type as the domain of the
+    /// universally quantified theorem pointed-to by `thm`.
+    ///
+    /// Returns `Err(ErrorCode::ShapeMismatch)` if `thm` does not point-to a
+    /// universally quantified theorem.
     pub fn theorem_register_forall_elimination<T, U>(
         &mut self,
         handle: T,
@@ -3512,48 +3792,106 @@ impl RuntimeState {
         T: Borrow<Handle<tags::Theorem>>,
         U: Into<Handle<tags::Term>>,
     {
-        let thm = self
-            .resolve_theorem_handle(handle)
-            .ok_or(ErrorCode::NoSuchTheoremRegistered)?;
+        let thm = handle.borrow();
         let trm = trm.into();
-        let thm = thm.clone();
 
-        let typ = self.term_type_infer(&trm)?;
+        let thm = self
+            .resolve_theorem_handle(thm)
+            .ok_or(ErrorCode::NoSuchTheoremRegistered)?
+            .clone();
+        let inferred = self.term_type_infer(&trm)?;
+
         let (name, tau, body) = self
             .term_split_forall(thm.conclusion())
-            .map_err(|_| ErrorCode::ShapeMismatch)?;
+            .map_err(|_e| ErrorCode::ShapeMismatch)?;
 
-        if tau != &typ {
+        if tau == &inferred {
+            // NB: satisfy the borrow checker.
+            let body = body.clone();
+            let tau = tau.clone();
+            let name = name.clone();
+
+            // NB: this is safe as we know everything should exist, and have the
+            // correct type, by this point.
+            let conclusion = self
+                .term_substitution(body, vec![((name, tau), trm)])
+                .expect(PRIMITIVE_CONSTRUCTION_ERROR);
+
+            Ok(self.admit_theorem(Theorem::new(
+                thm.premisses().clone(),
+                conclusion,
+            )))
+        } else {
             return Err(ErrorCode::DomainTypeMismatch);
         }
-
-        // Appease the borrow-checker gods...
-        let body = body.clone();
-        let name = *name;
-        let trm = trm.clone();
-        let premisses = thm.premisses().clone();
-
-        /* NB: this should never fail, as everything has either been checked at
-         * this point, or derives from a pre-existing kernel object which should
-         * not contain dangling handles.
-         */
-        let conclusion = self
-            .substitution(body, vec![((name, typ), trm)])
-            .expect(DANGLING_HANDLE_ERROR);
-
-        Ok(self.admit_theorem(Theorem::new(premisses, conclusion)))
     }
 
-    pub fn theorem_register_forall_introduction<T, U>(
+    /// Registers a new theorem object, `Γ ⊢ ∀x:τ. ɸ`, iff `handle` points-to a
+    /// theorem `Γ ⊢ ɸ` registered in the kernel's theorem-table, and `_type`
+    /// points-to a type, `τ`, registered in the kernel's type-table, providing
+    /// a side-condition on the variable to-be-quantified holds.  Returns
+    /// `Ok(handle)` if this process is successful, where `handle` is the
+    /// newly-allocated handle pointing-to the new theorem object.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `thm` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTypeRegistered)` if `_type` does not
+    /// point-to a registered type in the runtime state's type-table.
+    ///
+    /// Returns `Err(ErrorCode::ShapeMismatch)` if the variable to-be-quantified
+    /// appears in the free variables of any of the premisses of the theorem
+    /// pointed-to by `handle`.
+    pub fn theorem_register_forall_introduction<T, U, V>(
         &mut self,
-        _handle: T,
-        _name: U,
+        handle: T,
+        name: U,
+        _type: V,
     ) -> Result<Handle<tags::Theorem>, ErrorCode>
     where
         T: Borrow<Handle<tags::Theorem>>,
         U: Into<Name>,
+        V: Into<Handle<tags::Type>> + Clone + Debug,
     {
-        unimplemented!()
+        let handle = handle.borrow();
+        let name = name.into();
+        let tau = _type.into();
+
+        let thm = self
+            .resolve_theorem_handle(handle)
+            .ok_or(ErrorCode::NoSuchTheoremRegistered)
+            .clone()?;
+
+        if !self.type_is_registered(&tau) {
+            return Err(ErrorCode::NoSuchTypeRegistered);
+        }
+
+        for p in thm.premisses().iter() {
+            /* NB: this should not fail as we have already checked that the
+             * type is registered, as should everything else.
+             */
+            if self
+                .term_free_variables(p)
+                .expect(DANGLING_HANDLE_ERROR)
+                .contains(&(&name, &tau))
+            {
+                return Err(ErrorCode::ShapeMismatch);
+            }
+        }
+
+        // NB: satisfy the borrow checker.
+        let thm = thm.clone();
+
+        // NB: this should not fail as by this point we know everything is
+        // registered, and there is no type-checking needed, neither.
+        let conclusion = self
+            .term_register_forall(name, tau, thm.conclusion().clone())
+            .expect(PRIMITIVE_CONSTRUCTION_ERROR);
+
+        Ok(self
+            .admit_theorem(Theorem::new(thm.premisses().clone(), conclusion)))
     }
 
     pub fn theorem_register_exists_introduction<T, U>(
@@ -3596,7 +3934,7 @@ impl RuntimeState {
 
         /* 2. Add the new constant, giving it the type inferred previously. */
         let cnst_handle = self.issue_handle();
-        self.constants.insert(cnst_handle.clone(), tau);
+        self.constants.insert(cnst_handle.clone(), tau.clone());
 
         let empty: Vec<(Name, Handle<tags::Type>)> = Vec::new();
 
@@ -3607,7 +3945,7 @@ impl RuntimeState {
 
         /* 4. Construct the definitional theorem. */
         let stmt = self
-            .term_register_equality(cnst.clone(), defn)
+            .term_register_equality(cnst.clone(), defn.clone())
             .expect(PRIMITIVE_CONSTRUCTION_ERROR);
 
         /* 5. Register the definitional theorem. */
@@ -4074,7 +4412,7 @@ mod test {
                 v1.clone(),
             )
             .unwrap();
-        let c1 = state.term_register_application(l1, v0.clone()).unwrap();
+        let c1 = state.term_register_application(l1, v0).unwrap();
 
         assert!(state.is_alpha_equivalent(&c0, &c1).unwrap());
     }
