@@ -1,9 +1,11 @@
 \documentclass[a4paper, UKenglish, cleveref, autoref, thm-restate]{lipics-v2021}
 
+\usepackage{tikz}
+
 \bibliographystyle{plainurl}
 
-\title{All watched over by machines of loving grace:\\the Supervisionary proof-checking system}
-\titlerunning{System description: the Supervisionary proof-checking kernel}
+\title{All watched over by machines of loving grace}
+\titlerunning{Supervisionary system description}
 
 \ccsdesc{}
 \keywords{Proof assistant design, operating systems, LCF, Supervisionary, capabilities}
@@ -42,6 +44,67 @@ However, unlike typical capabilities, Supervisionary's capabilities are extremel
 
 \subsection{On operating systems}
 
+\begin{figure}
+\tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+\begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-0.7,xscale=0.7]
+%uncomment if require: \path (0,300); %set diagram left start at 0, and has height of 300
+
+%Straight Lines [id:da0238858095373361] 
+\draw [line width=1]  [dash pattern={on 1pt off 1pt}]  (10,133) -- (690,133) ;
+%Shape: Rectangle [id:dp18633003951104476] 
+\draw  [fill={rgb, 255:red, 184; green, 233; blue, 134 }  ,fill opacity=0.5 ] (10,30) -- (690,30) -- (690,110) -- (10,110) -- cycle ;
+%Straight Lines [id:da8836005156472156] 
+\draw    (180,150) -- (180,270) ;
+%Straight Lines [id:da0871105771687758] 
+\draw    (360,151) -- (360,270) ;
+%Straight Lines [id:da47486673087950704] 
+\draw    (520,150) -- (520,270) ;
+%Flowchart: Process [id:dp5014112861074582] 
+\draw  [fill={rgb, 255:red, 208; green, 2; blue, 27 }  ,fill opacity=0.5 ] (10,190) -- (170,190) -- (170,270) -- (10,270) -- cycle ;
+%Flowchart: Process [id:dp5474401833590941] 
+\draw  [fill={rgb, 255:red, 208; green, 2; blue, 27 }  ,fill opacity=0.5 ] (190,190) -- (350,190) -- (350,270) -- (190,270) -- cycle ;
+%Flowchart: Process [id:dp05943677937308278] 
+\draw  [fill={rgb, 255:red, 208; green, 2; blue, 27 }  ,fill opacity=0.5 ] (530,190) -- (690,190) -- (690,270) -- (530,270) -- cycle ;
+%Flowchart: Process [id:dp22719106375428721] 
+\draw  [fill={rgb, 255:red, 74; green, 144; blue, 226 }  ,fill opacity=0.5 ] (10,150) -- (170,150) -- (170,180) -- (10,180) -- cycle ;
+%Flowchart: Process [id:dp418634561741007] 
+\draw  [fill={rgb, 255:red, 74; green, 144; blue, 226 }  ,fill opacity=0.5 ] (190,150) -- (350,150) -- (350,180) -- (190,180) -- cycle ;
+%Flowchart: Process [id:dp5808126324898445] 
+\draw  [fill={rgb, 255:red, 74; green, 144; blue, 226 }  ,fill opacity=0.5 ] (530,150) -- (690,150) -- (690,180) -- (530,180) -- cycle ;
+%Left Right Arrow [id:dp18252152506193997] 
+\draw  [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ,fill opacity=1 ] (90,90) -- (105,108.75) -- (97.5,108.75) -- (97.5,146.25) -- (105,146.25) -- (90,165) -- (75,146.25) -- (82.5,146.25) -- (82.5,108.75) -- (75,108.75) -- cycle ;
+%Left Right Arrow [id:dp937447124008122] 
+\draw  [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ,fill opacity=1 ] (270,90) -- (285,108.75) -- (277.5,108.75) -- (277.5,146.25) -- (285,146.25) -- (270,165) -- (255,146.25) -- (262.5,146.25) -- (262.5,108.75) -- (255,108.75) -- cycle ;
+%Left Right Arrow [id:dp43564214029042536] 
+\draw  [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ,fill opacity=1 ] (610,90) -- (625,108.75) -- (617.5,108.75) -- (617.5,146.25) -- (625,146.25) -- (610,165) -- (595,146.25) -- (602.5,146.25) -- (602.5,108.75) -- (595,108.75) -- cycle ;
+
+% Text Node
+\draw (23,40) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont (Trusted) kernel}};
+% Text Node
+\draw (434,211) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont ...}};
+% Text Node
+\draw (18,155) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont libc}};
+% Text Node
+\draw (198,155) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont libc}};
+% Text Node
+\draw (537,155) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont libc}};
+% Text Node
+\draw (21,201) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont Process 1}};
+% Text Node
+\draw (201,202) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont Process 2}};
+% Text Node
+\draw (541,202) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont Process N}};
+% Text Node
+\draw (-39,32) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont EL1}};
+% Text Node
+\draw (-39,152) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont EL0}};
+\end{tikzpicture}
+\caption{A schematic of the typical system organization of a commodity operating system and its associated user-space.
+The kernel (in green) executes at a relative level of privilege compared to user-space (red) enforced by hardware---here, we follow the Arm convention and show the kernel executing at \texttt{EL1} and user-space at \texttt{EL0}.
+The two communicate across a system call boundary (dashed line) using system calls (black arrows), with user-space typically making use of a library such as \texttt{libc} (blue) to abstract over this process.}
+\label{fig.operating-system.schematic}
+\end{figure}
+
 Most commodity operating systems---that is, Microsoft Windows and Unix-derivatives\footnote{To guard against quibbling over research operating systems like exokernels and similar which can be argued not to fit this pattern}---fit a common pattern and are architected around a relatively self-contained, trusted component typically called the system \emph{kernel}.
 
 At system initialisation, the kernel takes control of all system resources.
@@ -75,6 +138,39 @@ In this respect, the C-language may have prominence of the favoured language of 
 
 \subsection{On programmable proof-checkers}
 
+\begin{figure}
+\tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+\begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-0.85,xscale=0.85]
+%uncomment if require: \path (0,300); %set diagram left start at 0, and has height of 300
+
+%Shape: Rectangle [id:dp5145169571980753] 
+\draw  [fill={rgb, 255:red, 155; green, 155; blue, 155 }  ,fill opacity=0.1 ][dash pattern={on 0.84pt off 2.51pt}] (10,10) -- (420,10) -- (420,170) -- (10,170) -- cycle ;
+%Shape: Rectangle [id:dp7336028259076729] 
+\draw  [fill={rgb, 255:red, 184; green, 233; blue, 134 }  ,fill opacity=0.5 ] (20,50) -- (210,50) -- (210,150) -- (20,150) -- cycle ;
+%Shape: Rectangle [id:dp32707998554431983] 
+\draw  [fill={rgb, 255:red, 208; green, 2; blue, 27 }  ,fill opacity=0.5 ] (220,50) -- (410,50) -- (410,150) -- (220,150) -- cycle ;
+%Shape: Rectangle [id:dp3433596839522859] 
+\draw  [fill={rgb, 255:red, 74; green, 144; blue, 226 }  ,fill opacity=0.5 ] (430,50) -- (610,50) -- (610,150) -- (430,150) -- cycle ;
+%Left Right Arrow [id:dp2058390242799486] 
+\draw  [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ,fill opacity=1 ] (177,115) -- (195.75,100) -- (195.75,107.5) -- (233.25,107.5) -- (233.25,100) -- (252,115) -- (233.25,130) -- (233.25,122.5) -- (195.75,122.5) -- (195.75,130) -- cycle ;
+%Left Right Arrow [id:dp5651724135135525] 
+\draw  [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ,fill opacity=1 ] (382,119) -- (400.75,104) -- (400.75,111.5) -- (438.25,111.5) -- (438.25,104) -- (457,119) -- (438.25,134) -- (438.25,126.5) -- (400.75,126.5) -- (400.75,134) -- cycle ;
+
+% Text Node
+\draw (145,19) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont {\it Metalanguage process}}};
+% Text Node
+\draw (62,62) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont (Trusted) kernel}};
+% Text Node
+\draw (275,62) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont Automation}};
+% Text Node
+\draw (473,62) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont External tool}};
+\end{tikzpicture}
+\caption{A schematic of the system organisation of a typical LCF-style proof assistant.
+The trusted kernel (green) is linked against untrusted automation (red) existing within the same metalanguage process (dotted line) and communicate with each other using the kernel's API (black arrow).
+External tools existing as separate processes (blue, must communicate with a shim layer written in the proof assistant's metalanguage to access the kernel (black arrow).}
+\label{fig.proof-assistant.organization}
+\end{figure}
+
 Most modern proof assistants---that is, systems in the wider HOL family, Coq, Matita, PRL, and similar---fit a common pattern and are architected around a relatively self-contained, trusted component typically called the system \emph{kernel}.
 
 The system kernel is the sole component that can authenticate claims as legitimate theorems of the implemented logic.
@@ -100,7 +196,22 @@ However, the two mechanisms through which these different types of kernel self-i
 
 In this paper we introduce \emph{Supervisionary}, a novel programmable proof-checker for Gordon's HOL.
 (Note that many of the ideas presented henceforth are logic-independent, and though we have chosen to use HOL in our prototype, can be applied to a wide array of other logics with minimal changes.)
-Supervionary's system design is reminiscent 
+Supervionary's system design has more in common with the typical system organisation of an operating system than comparable implementations of HOL.
+Specifically, the Supervisionary kernel executes at a relative level of privilege when compared to untrusted automation, which can be thought of as executing in something akin to Supervisionary's version of ``user space''.
+The trusted kernel, and untrusted user space, communicate across a system call boundary, which must be carefully designed in order to ensure system soundness.
+
+One immediate consequence of this design is that the Supervisionary kernel immediately takes on a very different character to the typical LCF kernel.
+Specifically, all of the typical paraphernalia of a HOL implementation---type formers, types, constants, terms, and theorems---are kept safely under the management of the Supervisionary kernel itself, in private memory areas, and never exposed directly to user-space but rather referenced indirectly by handles.
+These handles may be thought of as somewhat akin to pointers into Supervisionary's private memories, analogous to file handles in typical systems software, and are used by user-space software to denote a kernel object that the Supervisionary kernel should manipulate or query on user-space's behalf.
+
+Remarkably, Supervisionary is not implemented in a typed functional programming language, as is typical of most programmable proof-checkers, but rather in the \emph{unsafe} systems programming language, Rust.
+Note that this implementation decision introduces no risk to system soundness which ultimately rests on the separation of kernel-private data from user-space, using privilege and private memories, not on programming language features.
+Moreover, as user-space and kernel communicate across a defined system call interface, untrusted user-space may also be written in \emph{any} programming language capable of producing code that is binary-compatible with the Supervisionary kernel.
+Supervisionary therefore has no ``metalanguage'', but rather an implementation language (Rust) and is ambivalent about the programming languages that automation may be written in.
+
+We implement Supervisionary as a WebAssembly (or Wasm, henceforth) host.
+This allows us to experiment with the essential ideas behind Supervisionary---namely isolating the kernel using private-memory, which the ``user-space'' Wasm program executing under the Supervisionary host cannot access---without become bogged down in extraneous detail associated with booting a real machine, and interacting with real hardware.
+Moreover, we harness work on porting compiler and linker toolchains, allowing our ``user space'' to be written in any language capable of targeting Wasm.
 
 \section{Kernel design}
 \label{sect.kernel.design}
