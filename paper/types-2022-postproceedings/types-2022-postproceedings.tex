@@ -1,8 +1,13 @@
 \documentclass[a4paper, UKenglish, cleveref, autoref, thm-restate]{lipics-v2021}
 
+\usepackage{amsmath}
+\usepackage{prooftree}
 \usepackage{tikz}
 
 \bibliographystyle{plainurl}
+
+\newcommand{\fall}[1]{\forall{#1}.}
+\newcommand{\lam}[1]{\lambda{#1}.}
 
 \title{All watched over by machines of loving grace}
 \titlerunning{Supervisionary system description}
@@ -191,45 +196,105 @@ Whilst external tools, and automation written in other languages, can interface 
 \subsection{The Supervisionary system}
 
 In many respects, as the text above intimates, the role of the kernel in an operating system and the role of the kernel in a proof-checker is, abstractly, \emph{essentially} the same.
-Namely, both components must enforce system-wide invariants in the face of, and correctly isolate themselves from, unbridled interaction with untrusted code.
+Namely, both components must enforce system-wide invariants in the face of---and correctly isolate themselves from---unbridled interaction with untrusted code.
 However, the two mechanisms through which these different types of kernel self-isolate are very different: for operating system kernels\footnote{Barring unikernels like Mirage, which are in some respects quite similar to LCF-style proof-checkers in this regard} self-isolation is enforced using machine-oriented mechanisms; for LCF-style proof-checkers, self-isolation is enforced using programming language-oriented mechanisms.
 
-In this paper we introduce \emph{Supervisionary}, a novel programmable proof-checker for Gordon's HOL.
+In this paper we introduce \emph{Supervisionary}, a novel programmable proof-checker for Gordon's HOL whose design will be further discussed in detail in Section~\ref{sect.kernel.design}.
 (Note that many of the ideas presented henceforth are logic-independent, and though we have chosen to use HOL in our prototype, can be applied to a wide array of other logics with minimal changes.)
-Supervionary's system design has more in common with the typical system organisation of an operating system than comparable implementations of HOL.
+Of note, Supervionary's system design has more in common with the typical system organisation of an operating system than comparable implementations of HOL.
 Specifically, the Supervisionary kernel executes at a relative level of privilege when compared to untrusted automation, which can be thought of as executing in something akin to Supervisionary's version of ``user space''.
 The trusted kernel, and untrusted user space, communicate across a system call boundary, which must be carefully designed in order to ensure system soundness.
 
 One immediate consequence of this design is that the Supervisionary kernel immediately takes on a very different character to the typical LCF kernel.
 Specifically, all of the typical paraphernalia of a HOL implementation---type formers, types, constants, terms, and theorems---are kept safely under the management of the Supervisionary kernel itself, in private memory areas, and never exposed directly to user-space but rather referenced indirectly by handles.
-These handles may be thought of as somewhat akin to pointers into Supervisionary's private memories, analogous to file handles in typical systems software, and are used by user-space software to denote a kernel object that the Supervisionary kernel should manipulate or query on user-space's behalf.
+These handles may be thought of as somewhat akin to pointers into Supervisionary's private memories, or analogous to file handles in typical systems software, and are used by user-space software to denote a kernel object that the Supervisionary kernel should manipulate or query on user-space's behalf.
 
-Remarkably, Supervisionary is not implemented in a typed functional programming language, as is typical of most programmable proof-checkers, but rather in the \emph{unsafe} systems programming language, Rust.
+Remarkably, Supervisionary is also not implemented in a typed functional programming language, as is typical of most programmable proof-checkers, but rather in the \emph{unsafe} systems programming language, Rust.
 Note that this implementation decision introduces no risk to system soundness which ultimately rests on the separation of kernel-private data from user-space, using privilege and private memories, not on programming language features.
 Moreover, as user-space and kernel communicate across a defined system call interface, untrusted user-space may also be written in \emph{any} programming language capable of producing code that is binary-compatible with the Supervisionary kernel.
-Supervisionary therefore has no ``metalanguage'', but rather an implementation language (Rust) and is ambivalent about the programming languages that automation may be written in.
+Supervisionary therefore has no ``metalanguage'' in the sense understood by users of LCF-style provers, but rather an implementation language, with automation potentially written in multiple languages.
 
 We implement Supervisionary as a WebAssembly (or Wasm, henceforth) host.
-This allows us to experiment with the essential ideas behind Supervisionary---namely isolating the kernel using private-memory, which the ``user-space'' Wasm program executing under the Supervisionary host cannot access---without become bogged down in extraneous detail associated with booting a real machine, and interacting with real hardware.
+This allows us to experiment with the essential ideas behind Supervisionary---namely isolating the kernel using private memory areas, which the ``user-space'' Wasm program executing under the host cannot access, and which exposes services via system call-like interface---without become bogged down in extraneous detail associated with booting a real machine, and interacting with real hardware.
 Moreover, we harness work on porting compiler and linker toolchains, allowing our ``user space'' to be written in any language capable of targeting Wasm.
 
 \section{Kernel design}
 \label{sect.kernel.design}
 
+\subsection{Implemented logic}
+
+Supervisionary implements a variant of Gordon's HOL, a classical higher-order logic which can be intuitively understood as Church's Simple Theory of Types extended with ML-style top-level polymorphism.
+We introduce the basics of this logic here, introducing just enough material so that the unfamiliar reader can follow the rest of the paper.
+
+We fix a set of \emph{type variables} and use $\alpha$, $\beta$, $\gamma$, and so on, to range arbitrarily over them.
+With these, we work with a grammar of \emph{types} generated by the following recursive grammar:
+\begin{gather*}
+\tau, \tau', \tau'' ::= \alpha \mid \mathsf{f}(\tau, \ldots, \tau')
+\end{gather*}
+Here $\mathsf{f}$ is a \emph{type-former} which has an associated \emph{arity}---a natural number indicating the number of type arguments that it expects.
+If all type-formers within a type are applied to their expected number of types we call the type \emph{well-formed}---that is, arities introduce a trivial or degenerate form of \emph{kinding} for types.
+We will only ever work with well-formed types in Supervisionary.
+We write $tv(\tau)$ for the \emph{set of type-variables} appearing within a type, and write $\tau[\alpha := \tau']$ for the \emph{type substitution} replacing all occurrences of $\alpha$ with $\tau'$ in the type $\tau$.
+From the outset we assume two primitive type-formers---essentially built-in to the logic itself, and necessary to bootstrap the rest of the logic: $\mathsf{bool}$, the type-former of the Boolean type (and in HOL, also propositions), with arity $0$, and $- \Rightarrow -$, the type-former of the HOL function space, with arity $2$.
+Note we will abuse syntax and also write $\mathsf{bool}$ for the \emph{type} of Booleans and propositions, and also write $\tau \Rightarrow \tau'$ for the function space type.
+
+For each well-formed type $\tau$ we assume a countably infinite set of \emph{variables} and \emph{constant symbols}.
+We use $x_\tau$, $y_\tau$, $z_\tau$, and so on, to range over the variables associated with type $\tau$, and use $\mathsf{C}_\tau$, $\mathsf{D}_\tau$, $\mathsf{E}_\tau$, and so on, to also range over the constants associated with type $\tau$.
+With these, we recursively define \emph{terms} of the explicitly-typed $\lambda$-calculus, as follows:
+\begin{displaymath}
+r, s, t ::= x_\tau \mid \mathsf{C}_\tau \mid rs \mid \lam{x{:}\tau}r
+\end{displaymath}
+Note that there is an ``obvious'' typing relation on terms, which we omit here, and we call any term with a type \emph{well-typed}.
+We will only ever work with well-typed terms in Supervisionary, and call terms with type $\mathsf{bool}$ \emph{formulae}.
+We will use $\phi$, $\psi$, $\xi$, and so on, to suggestively range over terms that should be understood as being formulae.
+We work with terms up-to $\alpha$-equivalence, write $fv(r)$ for the set of \emph{free variables} appearing within the term $r$, write $r[x_\tau := t]$ for the usual \emph{capture-avoiding substitution} on terms, and write $r[\alpha := \tau]$ for the recursive extension of the type substitution action to terms.
+
+Like with type-formers, from the offset we assume a collection of typed constants needed to boostrap the rest of the logic, summarised in the table below:
+\begin{center}
+\begin{tabular}{cc}
+$=$ & $\alpha \Rightarrow \alpha \Rightarrow \mathsf{bool}$ \\
+$\top$, $\bot$ & $\mathsf{bool}$ \\
+$\neg$ & $\mathsf{bool} \Rightarrow \mathsf{bool}$ \\
+$\wedge$, $\vee$, $\longrightarrow$ & $\mathsf{bool} \Rightarrow \mathsf{bool} \Rightarrow \mathsf{bool}$ \\
+$\forall$, $\exists$ & $(\alpha \Rightarrow \mathsf{bool}) \Rightarrow \mathsf{bool}$ \\
+$\epsilon$ & $(\alpha \Rightarrow \mathsf{bool}) \Rightarrow \mathsf{\alpha}$
+\end{tabular}
+\end{center}
+The majority of the constants above correspond to the usual logical constants and connectives of first- or higher-order logic and are introduced without further explanation.
+Only the latter $\epsilon$ constant---Hilbert's description operator, a form of choice---may be unfamiliar.
+In HOL, this can be used to ``select'', or ``choose'' an element of a type according to some predicate, and is otherwise undefined if no such element exists.
+Note that all HOL types are inhabited by at least one element.
+We adopt usual mathematical conventions and precedence levels when writing terms making use of these constants, writing $\phi \longrightarrow \psi$ instead of $(\longrightarrow\ \phi)\psi$, for example.
+We also suppress explicit type substitutions required to make terms involving polymorphic types well-typed, writing $\fall{x_\tau}\phi$ instead of $\forall[\alpha := \tau](\lam{x_\tau}\phi)$, for example.
+
+We call a finite set of formulae a \emph{context}, ranged arbitrarily over by $\Gamma$, $\Gamma'$, $\Gamma''$, and so on, and introduce a two-place \emph{Natural Deduction relation} between contexts and formula using the rules in Figure~\ref{fig.natural.deduction}.
+We write $\Gamma \vdash \phi$ to assert that a derivation tree rooted at $\Gamma \vdash \phi$ and constructed according to the rules presented in Figure~\ref{fig.natural.deduction} exists.
+
+\begin{figure}
+\begin{gather*}
+\end{gather*}
+\caption{The Natural Deduction relation for Gordon's HOL.}
+\label{fig.natural.deduction}
+\end{figure}
+
 \subsection{The kernel state}
+
+The Supervisionary kernel maintains several private \emph{heaps} containing \emph{kernel objects} of various kinds, corresponding to the various objects that constitute the HOL logic: type-formers, types, constants, terms, and theorems.
 
 \subsection{The kernel system call interface}
 
-\section{Programming the kernel}
-\label{sect.programming.the.kernel}
+\subsection{Programming the kernel}
 
-\section{Specifying kernel functions}
-\label{sect.specifying.kernel.functions}
+\subsection{Specifying kernel functions}
 
 \section{Capabilities on steroids}
 \label{sect.capabilities.on.steroids}
 
 \section{Conclusions}
 \label{sect.conclusions}
+
+\subsection{Related work}
+
+\subsection{Future work}
 
 \end{document}
