@@ -4,10 +4,14 @@
 \usepackage{prooftree}
 \usepackage{tikz}
 
+\usetikzlibrary{patterns}
+
 \bibliographystyle{plainurl}
 
+\newcommand{\eps}[1]{\epsilon{#1}.}
 \newcommand{\fall}[1]{\forall{#1}.}
 \newcommand{\lam}[1]{\lambda{#1}.}
+\newcommand{\xsts}[1]{\exists{#1}.}
 
 \title{All watched over by machines of loving grace}
 \titlerunning{Supervisionary system description}
@@ -222,6 +226,183 @@ Moreover, we harness work on porting compiler and linker toolchains, allowing ou
 \label{sect.kernel.design}
 
 \subsection{Implemented logic}
+\label{subsect.implemented.logic}
+
+\begin{figure}[t]
+\begin{gather*}
+\begin{prooftree}
+\text{($r : \tau$)}
+\justifies
+\Gamma \vdash r = r
+\end{prooftree}
+\qquad
+\begin{prooftree}
+\Gamma \vdash r = s
+\justifies
+\Gamma \vdash s = r
+\end{prooftree}
+\qquad
+\begin{prooftree}
+\Gamma \vdash r = s \;\;\; \Gamma \vdash s = t
+\justifies
+\Gamma \vdash r = t
+\end{prooftree}
+\qquad
+\begin{prooftree}
+(\phi \in \Gamma)
+\justifies
+\Gamma \vdash \phi
+\end{prooftree}
+\qquad
+\begin{prooftree}
+\Gamma \vdash \bot \;\;\; \text{($\phi : \mathsf{bool}$)}
+\justifies
+\Gamma \vdash \phi
+\end{prooftree}
+\\[1ex]
+\begin{prooftree}
+\phantom{h}
+\justifies
+\Gamma \vdash \top
+\end{prooftree}
+\qquad
+\begin{prooftree}
+\Gamma \vdash \phi \;\;\; \Gamma' \vdash \psi
+\justifies
+\Gamma \cup \Gamma' \vdash \phi \wedge \psi
+\end{prooftree}
+\qquad
+\begin{prooftree}
+\Gamma \vdash \phi \wedge \psi
+\justifies
+\Gamma \vdash \phi
+\end{prooftree}
+\qquad
+\begin{prooftree}
+\Gamma \vdash \phi \wedge \psi
+\justifies
+\Gamma \vdash \psi
+\end{prooftree}
+\qquad
+\begin{prooftree}
+\Gamma \cup \{ \phi \} \vdash \psi \;\;\; \text{($\phi : \mathsf{bool}$)}
+\justifies
+\Gamma \vdash \phi \longrightarrow \psi
+\end{prooftree}
+\\[1ex]
+\begin{prooftree}
+\Gamma \vdash \phi \longrightarrow \psi
+\;\;\;
+\Gamma \vdash \phi
+\justifies
+\Gamma \vdash \psi
+\end{prooftree}
+\quad
+\begin{prooftree}
+\Gamma \vdash \phi \;\;\; \text{($\psi : \mathsf{bool}$)}
+\justifies
+\Gamma \vdash \phi \vee \psi
+\end{prooftree}
+\quad
+\begin{prooftree}
+\Gamma \vdash \psi \;\;\; \text{($\phi : \mathsf{bool}$)}
+\justifies
+\Gamma \vdash \phi \vee \psi
+\end{prooftree}
+\quad
+\begin{prooftree}
+\Gamma \vdash \phi = \psi \;\;\; \Gamma' \vdash \phi
+\justifies
+\Gamma \cup \Gamma' \vdash \psi
+\end{prooftree}
+\\[1ex]
+\begin{prooftree}
+\Gamma \vdash \phi \vee \psi \;\;\; \Gamma' \cup \{ \phi \} \vdash \xi \;\;\; \Gamma'' \cup \{ \psi \} \vdash \xi
+\justifies
+\Gamma \cup \Gamma' \cup \Gamma'' \vdash \xi
+\end{prooftree}
+\quad\qquad\qquad\qquad
+\begin{prooftree}
+\Gamma \vdash \phi \longrightarrow \psi \;\;\; \Gamma \vdash \psi \longrightarrow \phi
+\justifies
+\Gamma \vdash \phi = \psi
+\end{prooftree}
+\\[1ex]
+\begin{prooftree}
+\Gamma \vdash \xsts{x_\tau}\phi \;\;\; \Gamma \cup \{ \phi[x_\tau := y_\tau] \} \;\;\; \psi \quad \text{($y_\tau \notin fv(\psi) \cup fv(\Gamma) \cup \{ x_\tau \}$)}
+\justifies
+\Gamma \vdash \psi
+\end{prooftree}
+\quad
+\begin{prooftree}
+\Gamma \vdash \phi = \psi \;\;\; \Gamma' \vdash \psi
+\justifies
+\Gamma \cup \Gamma' \vdash \phi
+\end{prooftree}
+\\[1ex]
+\begin{prooftree}
+\Gamma \cup \{ \phi \} \vdash \bot \;\;\; \text{($\phi : \mathsf{bool}$)}
+\justifies
+\Gamma \vdash \neg\phi
+\end{prooftree}
+\qquad\qquad\qquad
+\begin{prooftree}
+\Gamma \vdash \neg\phi \;\;\; \Gamma' \vdash \phi
+\justifies
+\Gamma \cup \Gamma' \vdash \bot
+\end{prooftree}
+\qquad\qquad\qquad
+\begin{prooftree}
+\Gamma \vdash \fall{x_\tau}\phi \;\;\; \text{($r : \tau$)}
+\justifies
+\Gamma \vdash \phi[x_\tau := r]
+\end{prooftree}
+\\[1ex]
+\begin{prooftree}
+\Gamma \vdash \phi[x_\tau := r]
+\justifies
+\Gamma \vdash \xsts{x_\tau}\phi
+\end{prooftree}
+\quad\qquad\qquad
+\begin{prooftree}
+\Gamma \vdash \phi \;\;\; \text{($x_\tau \notin fv(\Gamma)$)}
+\justifies
+\Gamma \vdash \fall{x_\tau}\phi
+\end{prooftree}
+\quad\qquad\qquad
+\begin{prooftree}
+\text{($s : \tau'$, $r : \tau$)}
+\justifies
+\Gamma \vdash (\lam{x_\tau}s)r = s[x_\tau := r]
+\end{prooftree}
+\\[1ex]
+\begin{prooftree}
+\Gamma \vdash \eps{x_\tau}\phi
+\justifies
+\Gamma \vdash \phi(\eps{x_\tau}\phi)
+\end{prooftree}
+\quad
+\begin{prooftree}
+\text{($f : \tau \Rightarrow \tau'$, $x \notin fv(f)$)}
+\justifies
+\Gamma \vdash \lam{x_\tau}(f\ x) = f
+\end{prooftree}
+\quad
+\begin{prooftree}
+\Gamma \vdash \phi \;\;\; \text{($r : \tau$)}
+\justifies
+\Gamma[x_\tau := r] \vdash \phi[x_\tau := r]
+\end{prooftree}
+\quad
+\begin{prooftree}
+\Gamma \vdash \phi
+\justifies
+\Gamma[\alpha := \tau] \vdash \phi[\alpha := \tau]
+\end{prooftree}
+\end{gather*}
+\caption{The Natural Deduction relation for Gordon's HOL.}
+\label{fig.natural.deduction}
+\end{figure}
 
 Supervisionary implements a variant of Gordon's HOL, a classical higher-order logic which can be intuitively understood as Church's Simple Theory of Types extended with ML-style top-level polymorphism.
 We introduce the basics of this logic here, introducing just enough material so that the unfamiliar reader can follow the rest of the paper.
@@ -244,20 +425,21 @@ With these, we recursively define \emph{terms} of the explicitly-typed $\lambda$
 \begin{displaymath}
 r, s, t ::= x_\tau \mid \mathsf{C}_\tau \mid rs \mid \lam{x{:}\tau}r
 \end{displaymath}
-Note that there is an ``obvious'' typing relation on terms, which we omit here, and we call any term with a type \emph{well-typed}.
+Note that there is an ``obvious'' simple-typing relation on terms, which we omit here, though we write $r : \tau$ to assert that term $r$ has type $\tau$.
+We call any term with a type \emph{well-typed}.
 We will only ever work with well-typed terms in Supervisionary, and call terms with type $\mathsf{bool}$ \emph{formulae}.
 We will use $\phi$, $\psi$, $\xi$, and so on, to suggestively range over terms that should be understood as being formulae.
 We work with terms up-to $\alpha$-equivalence, write $fv(r)$ for the set of \emph{free variables} appearing within the term $r$, write $r[x_\tau := t]$ for the usual \emph{capture-avoiding substitution} on terms, and write $r[\alpha := \tau]$ for the recursive extension of the type substitution action to terms.
 
 Like with type-formers, from the offset we assume a collection of typed constants needed to boostrap the rest of the logic, summarised in the table below:
 \begin{center}
-\begin{tabular}{cc}
-$=$ & $\alpha \Rightarrow \alpha \Rightarrow \mathsf{bool}$ \\
-$\top$, $\bot$ & $\mathsf{bool}$ \\
-$\neg$ & $\mathsf{bool} \Rightarrow \mathsf{bool}$ \\
-$\wedge$, $\vee$, $\longrightarrow$ & $\mathsf{bool} \Rightarrow \mathsf{bool} \Rightarrow \mathsf{bool}$ \\
-$\forall$, $\exists$ & $(\alpha \Rightarrow \mathsf{bool}) \Rightarrow \mathsf{bool}$ \\
-$\epsilon$ & $(\alpha \Rightarrow \mathsf{bool}) \Rightarrow \mathsf{\alpha}$
+\begin{tabular}{ccc}
+$=$ & & $\alpha \Rightarrow \alpha \Rightarrow \mathsf{bool}$ \\
+$\top$, $\bot$ & & $\mathsf{bool}$ \\
+$\neg$ & & $\mathsf{bool} \Rightarrow \mathsf{bool}$ \\
+$\wedge$, $\vee$, $\longrightarrow$ & \qquad with type \qquad & $\mathsf{bool} \Rightarrow \mathsf{bool} \Rightarrow \mathsf{bool}$ \\
+$\forall$, $\exists$ & & $(\alpha \Rightarrow \mathsf{bool}) \Rightarrow \mathsf{bool}$ \\
+$\epsilon$ & & $(\alpha \Rightarrow \mathsf{bool}) \Rightarrow \mathsf{\alpha}$
 \end{tabular}
 \end{center}
 The majority of the constants above correspond to the usual logical constants and connectives of first- or higher-order logic and are introduced without further explanation.
@@ -267,19 +449,459 @@ Note that all HOL types are inhabited by at least one element.
 We adopt usual mathematical conventions and precedence levels when writing terms making use of these constants, writing $\phi \longrightarrow \psi$ instead of $(\longrightarrow\ \phi)\psi$, for example.
 We also suppress explicit type substitutions required to make terms involving polymorphic types well-typed, writing $\fall{x_\tau}\phi$ instead of $\forall[\alpha := \tau](\lam{x_\tau}\phi)$, for example.
 
-We call a finite set of formulae a \emph{context}, ranged arbitrarily over by $\Gamma$, $\Gamma'$, $\Gamma''$, and so on, and introduce a two-place \emph{Natural Deduction relation} between contexts and formula using the rules in Figure~\ref{fig.natural.deduction}.
-We write $\Gamma \vdash \phi$ to assert that a derivation tree rooted at $\Gamma \vdash \phi$ and constructed according to the rules presented in Figure~\ref{fig.natural.deduction} exists.
+We call a finite set of formulae a \emph{context}, ranged arbitrarily over by $\Gamma$, $\Gamma'$, $\Gamma''$, and so on.
+We write $\Gamma[x_\tau := r]$ and $\Gamma[\alpha := \tau]$ for the pointwise-lifting of the capture-avoiding substitution and type substitution on terms to contexts, and write $fv(\Gamma)$ for the set $\bigcup \{ fv(r) \mid r \in \Gamma \}$.
+We introduce a two-place \emph{Natural Deduction relation} between contexts and formulae using the rules in Figure~\ref{fig.natural.deduction}, and write $\Gamma \vdash \phi$ to assert that a derivation tree rooted at $\Gamma \vdash \phi$ and constructed according to the rules presented in this figure exists.
 
-\begin{figure}
-\begin{gather*}
-\end{gather*}
-\caption{The Natural Deduction relation for Gordon's HOL.}
-\label{fig.natural.deduction}
-\end{figure}
+Note that our Natural Deduction relation can be simplified following the equational treatment of the quantifiers and connectives discovered by Quine and Henkin, and implemented in the HOL Light proof assistant.
+We prefer a more explicit treatment.
 
 \subsection{The kernel state}
 
-The Supervisionary kernel maintains several private \emph{heaps} containing \emph{kernel objects} of various kinds, corresponding to the various objects that constitute the HOL logic: type-formers, types, constants, terms, and theorems.
+\begin{figure}
+% Pattern Info
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_17em7d7zr}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_17em7d7zr}
+{\pgfqpoint{0pt}{-\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{\mcSize}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{-\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+
+% Pattern Info
+ 
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_4lmnaiwdk}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_4lmnaiwdk}
+{\pgfqpoint{0pt}{0pt}}
+{\pgfpoint{\mcSize+\mcThickness}{\mcSize+\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{0pt}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{\mcSize+\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+
+% Pattern Info
+ 
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_c1ndu18eb}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_c1ndu18eb}
+{\pgfqpoint{0pt}{0pt}}
+{\pgfpoint{\mcSize+\mcThickness}{\mcSize+\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{0pt}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{\mcSize+\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+
+% Pattern Info
+ 
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_5e1m08o5b}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_5e1m08o5b}
+{\pgfqpoint{0pt}{-\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{\mcSize}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{-\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+
+% Pattern Info
+ 
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_lr9fdyrjm}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_lr9fdyrjm}
+{\pgfqpoint{0pt}{-\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{\mcSize}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{-\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+
+% Pattern Info
+ 
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_v1gc3zpz2}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_v1gc3zpz2}
+{\pgfqpoint{0pt}{-\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{\mcSize}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{-\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+
+% Pattern Info
+ 
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_eid010dtk}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_eid010dtk}
+{\pgfqpoint{0pt}{0pt}}
+{\pgfpoint{\mcSize+\mcThickness}{\mcSize+\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{0pt}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{\mcSize+\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+
+% Pattern Info
+ 
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_3xlzpvu97}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_3xlzpvu97}
+{\pgfqpoint{0pt}{0pt}}
+{\pgfpoint{\mcSize+\mcThickness}{\mcSize+\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{0pt}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{\mcSize+\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+
+% Pattern Info
+ 
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_x1kudmn8c}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_x1kudmn8c}
+{\pgfqpoint{0pt}{-\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{\mcSize}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{-\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+
+% Pattern Info
+ 
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_ihcziiikj}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_ihcziiikj}
+{\pgfqpoint{0pt}{-\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{\mcSize}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{-\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+
+% Pattern Info
+ 
+\tikzset{
+pattern size/.store in=\mcSize, 
+pattern size = 5pt,
+pattern thickness/.store in=\mcThickness, 
+pattern thickness = 0.3pt,
+pattern radius/.store in=\mcRadius, 
+pattern radius = 1pt}
+\makeatletter
+\pgfutil@ifundefined{pgf@pattern@name@_a6tqgvg71}{
+\pgfdeclarepatternformonly[\mcThickness,\mcSize]{_a6tqgvg71}
+{\pgfqpoint{0pt}{0pt}}
+{\pgfpoint{\mcSize+\mcThickness}{\mcSize+\mcThickness}}
+{\pgfpoint{\mcSize}{\mcSize}}
+{
+\pgfsetcolor{\tikz@pattern@color}
+\pgfsetlinewidth{\mcThickness}
+\pgfpathmoveto{\pgfqpoint{0pt}{0pt}}
+\pgfpathlineto{\pgfpoint{\mcSize+\mcThickness}{\mcSize+\mcThickness}}
+\pgfusepath{stroke}
+}}
+\makeatother
+\tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+
+\begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-0.9,xscale=0.92]
+%uncomment if require: \path (0,412); %set diagram left start at 0, and has height of 412
+
+%Curve Lines [id:da9699993037250317] 
+\draw    (71,350) .. controls (111,320) and (181,380) .. (221,350)(78.28,341.27) -- (81.36,348.65)(88.7,338.26) -- (90.09,346.14)(99.6,337.34) -- (99.62,345.34)(110.01,337.95) -- (109.11,345.9)(119.79,339.45) -- (118.3,347.31)(130.5,341.79) -- (128.62,349.57)(139.61,344.13) -- (137.55,351.86)(149.52,346.81) -- (147.42,354.53)(159.34,349.42) -- (157.36,357.17)(168.98,351.72) -- (167.28,359.54)(178.34,353.49) -- (177.12,361.39)(188.07,354.54) -- (187.62,362.53)(197.24,354.46) -- (197.89,362.43)(206.37,352.84) -- (208.58,360.53)(214.71,349.35) -- (218.67,356.3) ;
+%Straight Lines [id:da11493160111900269] 
+\draw    (221,50) -- (221,350) ;
+%Straight Lines [id:da6559308402647462] 
+\draw    (71,50) -- (221,50) ;
+%Straight Lines [id:da7710463269929695] 
+\draw    (71,50) -- (71,350) ;
+%Straight Lines [id:da5814717931102541] 
+\draw    (71,80) -- (221,80) ;
+%Straight Lines [id:da8180536795774389] 
+\draw    (71,110) -- (221,110) ;
+%Straight Lines [id:da6587093593787317] 
+\draw    (71,140) -- (221,140) ;
+%Straight Lines [id:da8732210796314931] 
+\draw    (71,170) -- (221,170) ;
+%Straight Lines [id:da7057006908584901] 
+\draw    (71,200) -- (221,200) ;
+%Straight Lines [id:da21089093504443857] 
+\draw    (71,230) -- (221,230) ;
+%Straight Lines [id:da23100390770991786] 
+\draw    (71,260) -- (221,260) ;
+%Straight Lines [id:da4618620288819064] 
+\draw    (71,290) -- (221,290) ;
+%Straight Lines [id:da8809965645546891] 
+\draw    (71,320) -- (221,320) ;
+%Shape: Rectangle [id:dp22970223563805758] 
+\draw  [pattern=_17em7d7zr,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (220,170) -- (71,170) -- (71,200) -- (220,200) -- cycle ;
+%Shape: Rectangle [id:dp6906379395036915] 
+\draw  [pattern=_4lmnaiwdk,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (220,200) -- (71,200) -- (71,230) -- (220,230) -- cycle ;
+%Shape: Rectangle [id:dp0964684565054561] 
+\draw  [pattern=_c1ndu18eb,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (220,260) -- (71,260) -- (71,290) -- (220,290) -- cycle ;
+%Shape: Rectangle [id:dp309872080133485] 
+\draw  [pattern=_5e1m08o5b,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (221,230) -- (72,230) -- (72,260) -- (221,260) -- cycle ;
+%Shape: Rectangle [id:dp41302127388124266] 
+\draw  [pattern=_lr9fdyrjm,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (221,290) -- (72,290) -- (72,320) -- (221,320) -- cycle ;
+%Curve Lines [id:da593893180418293] 
+\draw    (400,351.34) .. controls (440,321.34) and (510,381.34) .. (550,351.34)(407.28,342.61) -- (410.36,349.99)(417.7,339.6) -- (419.09,347.48)(428.6,338.68) -- (428.62,346.68)(439.01,339.29) -- (438.11,347.24)(448.79,340.79) -- (447.3,348.65)(459.5,343.13) -- (457.62,350.91)(468.61,345.47) -- (466.55,353.2)(478.52,348.15) -- (476.42,355.87)(488.34,350.76) -- (486.36,358.51)(497.98,353.06) -- (496.28,360.88)(507.34,354.83) -- (506.12,362.73)(517.07,355.88) -- (516.62,363.87)(526.24,355.8) -- (526.89,363.77)(535.37,354.18) -- (537.58,361.87)(543.71,350.69) -- (547.67,357.64) ;
+%Straight Lines [id:da22997841398330487] 
+\draw    (550,51.34) -- (550,351.34) ;
+%Straight Lines [id:da5523693894889597] 
+\draw    (400,51.34) -- (550,51.34) ;
+%Straight Lines [id:da12497868615863261] 
+\draw    (400,51.34) -- (400,351.34) ;
+%Straight Lines [id:da3536168253430715] 
+\draw    (400,81.34) -- (550,81.34) ;
+%Straight Lines [id:da5840273315880069] 
+\draw    (400,111.34) -- (550,111.34) ;
+%Straight Lines [id:da20805387126186647] 
+\draw    (400,141.34) -- (550,141.34) ;
+%Straight Lines [id:da5690645714331467] 
+\draw    (400,171.34) -- (550,171.34) ;
+%Straight Lines [id:da288874608869817] 
+\draw    (400,201.34) -- (550,201.34) ;
+%Straight Lines [id:da4570384063390234] 
+\draw    (400,231.34) -- (550,231.34) ;
+%Straight Lines [id:da04498044564320802] 
+\draw    (400,261.34) -- (550,261.34) ;
+%Straight Lines [id:da41077857857849054] 
+\draw    (400,291.34) -- (550,291.34) ;
+%Straight Lines [id:da27881163490416216] 
+\draw    (400,321.34) -- (550,321.34) ;
+%Shape: Rectangle [id:dp3989012691365351] 
+\draw  [pattern=_v1gc3zpz2,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (549,171.34) -- (400,171.34) -- (400,201.34) -- (549,201.34) -- cycle ;
+%Shape: Rectangle [id:dp48075011436801296] 
+\draw  [pattern=_eid010dtk,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (549,201.34) -- (400,201.34) -- (400,231.34) -- (549,231.34) -- cycle ;
+%Shape: Rectangle [id:dp16520356713311957] 
+\draw  [pattern=_3xlzpvu97,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (549,261.34) -- (400,261.34) -- (400,291.34) -- (549,291.34) -- cycle ;
+%Shape: Rectangle [id:dp7740872376098246] 
+\draw  [pattern=_x1kudmn8c,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (550,231.34) -- (401,231.34) -- (401,261.34) -- (550,261.34) -- cycle ;
+%Shape: Rectangle [id:dp44519720651386174] 
+\draw  [pattern=_ihcziiikj,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (550,291.34) -- (401,291.34) -- (401,321.34) -- (550,321.34) -- cycle ;
+%Curve Lines [id:da2921431463192107] 
+\draw    (400,130) .. controls (320.4,117.07) and (320,41.76) .. (398.81,59.72) ;
+\draw [shift={(400,60)}, rotate = 193.36] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Curve Lines [id:da49264373035400777] 
+\draw    (400,130) .. controls (361.39,191.38) and (275.74,72.42) .. (221.63,99.15) ;
+\draw [shift={(220,100)}, rotate = 330.95] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Shape: Rectangle [id:dp3144160976340612] 
+\draw  [pattern=_a6tqgvg71,pattern size=6pt,pattern thickness=0.75pt,pattern radius=0pt, pattern color={rgb, 255:red, 0; green, 0; blue, 0}] (550,141.34) -- (401,141.34) -- (401,171.34) -- (550,171.34) -- cycle ;
+
+% Text Node
+\draw (22,59) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x0}};
+% Text Node
+\draw (22,89) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x1}};
+% Text Node
+\draw (21,119) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x2}};
+% Text Node
+\draw    (89,377) -- (212,377) -- (212,402) -- (89,402) -- cycle  ;
+\draw (94,382) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont {\it Type-former heap}}};
+% Text Node
+\draw (21,149) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x3}};
+% Text Node
+\draw (21,179) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x4}};
+% Text Node
+\draw (21,209) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x5}};
+% Text Node
+\draw (21,239) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x6}};
+% Text Node
+\draw (21,269) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x7}};
+% Text Node
+\draw (21,299) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x8}};
+% Text Node
+\draw (31,331) node [anchor=north west][inner sep=0.75pt]   [align=left] {...};
+% Text Node
+\draw (121,57) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont {\footnotesize Arity: 0}}};
+% Text Node
+\draw (121,87) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont {\footnotesize Arity: 2}}};
+% Text Node
+\draw (121,117) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont {\footnotesize Arity: 1}}};
+% Text Node
+\draw (121,147) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont {\footnotesize Arity: 0}}};
+% Text Node
+\draw (570,59) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x0}};
+% Text Node
+\draw (570,89) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x1}};
+% Text Node
+\draw (569,119) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x2}};
+% Text Node
+\draw (569,149) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x3}};
+% Text Node
+\draw (569,179) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x4}};
+% Text Node
+\draw (569,209) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x5}};
+% Text Node
+\draw (569,239) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x6}};
+% Text Node
+\draw (569,269) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x7}};
+% Text Node
+\draw (569,299) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont 0x8}};
+% Text Node
+\draw (579,331) node [anchor=north west][inner sep=0.75pt]   [align=left] {...};
+% Text Node
+\draw    (439,377) -- (512,377) -- (512,402) -- (439,402) -- cycle  ;
+\draw (442,382) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{rm}\selectfont {\it Type heap}}};
+% Text Node
+\draw (437,59) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont {\footnotesize T: V, N: 0}}};
+% Text Node
+\draw (437,89) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont {\footnotesize T: V, N: 1}}};
+% Text Node
+\draw (410,120) node [anchor=north west][inner sep=0.75pt]   [align=left] {{\fontfamily{pcr}\selectfont {\footnotesize T: F, A: [0x0,0x0]}}};
+\end{tikzpicture}
+\caption{Entries within the Supervisionary kernel's type heap referencing entries within the type-former heap.
+Cross-hatched heap cells are as-yet unallocated by the kernel.
+The cell allocated at address \texttt{0x2} in the type heap is tagged with the \texttt{F} tag, indicating it is a type-former applied to a list of argument types, and points-to the cell at address \texttt{0x1} in the type-former heap, with arity $2$.
+Two copies of the type stored in the cell with address \texttt{0x0}, containing a type-variable with name $0$, are used as the argument of the type-former to produce a complete, well-formed type.
+Adopting the convention that type-variable $\alpha$ is at \texttt{0x0} in the type heap, and the function-space type-former $- \Rightarrow- $ is at \texttt{0x1} in the type-former heap, then this represents an encoding of the type $\alpha \Rightarrow \alpha$.}
+\label{fig.type-former.type.heap}
+\end{figure}
+
+\subsubsection*{The type-former heap}
+
+Supervisionary's kernel manages a series of \emph{heaps}, or private memories.
+These heaps contain different \emph{kernel objects}, of various kinds: type-formers, types, constants, terms, and theorems.
+
+The most foundational of all of the heaps is the heap of type-formers.
+Each cell within the heap is either \emph{unallocated} or \emph{allocated} and, in the latter case, therefore contains a natural number \emph{arity} for a type-former, encoded as an unsigned 64-bit machine word.
+New type-formers are registered within the heap by invoking a dedicated system call from user-space---\texttt{TypeFormer.Register}---which takes as input the arity of the type-former and in response allocates a fresh cell, returning the address of the cell back to user-space.
+This address is the handle to the new type-former kernel object, now under management by the Supervisionary kernel, and must be used by user-space to refer to this object henceforth---perhaps to query the arity of the type-former stored at a particular address in Supervisionary's heap, via the \texttt{TypeFormer.Arity} system call, for example, which exists for this purpose and takes a handle as input, returning either an arity or a defined error code back to user-space, indicating that the input handle is \emph{dangling}, and cannot be \emph{dereferenced} to obtain an arity.
+
+Note that type-formers are essentially ``named'' by their handle: there may be many type-formers with the same arity registered with the kernel, and the particular meaning of any type-former is largely a convention of user-space, outside of the purview of the Supervisionary kernel.
+Yet, there are exceptions to this rule: two primitive type-formers are pre-registered within the type-former heap on system boot: the $\mathsf{bool}$ type-former, registered at address \texttt{0x0} and with arity $0$, and the function-space type-former $\Rightarrow$, registered at address \texttt{0x1}, with arity $2$.
+The existence of these pre-registered type-formers must be understood by user-space, and essentially forms part of the Supervisionary system interface, in a similar vein to how the distinguished file handles \texttt{stdout} and \texttt{stdin} are part of the POSIX system interface, too.
+
+\subsubsection*{The type heap}
+
+Building atop the heap of type-formers is another Supervisionary heap: the heap of types.
+Referring back to the grammar of HOL types introduced in Subsection~\ref{subsect.implemented.logic}, all allocated entries within this heap are tagged either with a \texttt{V}, indicating that they are a type-variable, or with an \texttt{F}, indicating that they are a ``combination'' of a type-former applied to a list of argument types.
+
+Type-variable entries only contain one datum: the \emph{name} of the type-variable, which we take to be an unsigned 64-bit machine word.
+On the other hand, cells tagged with the combination tag also contain a pointer into the type-former heap, indicating which type-former is being applied, and contain a list of pointers back into the type heap itself, identifying the type arguments of the combination.
+Figure~\ref{fig.type-former.type.heap} shows a schematic diagram of dependencies between cells within the two heaps.
+
+Obviously, the Supervisionary kernel must be careful in its management of its heaps, and this topic becomes pressing now we have introduced two heaps with dependencies between them.
+In particular, Supervisionary maintains a series of \emph{kernel invariants} which hold immediately out of boot and must be preserved by all system calls.
+One 
 
 \subsection{The kernel system call interface}
 
