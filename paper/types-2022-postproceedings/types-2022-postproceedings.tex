@@ -1,8 +1,13 @@
 \documentclass[a4paper, UKenglish, cleveref, autoref, thm-restate]{lipics-v2021}
 
 \usepackage{amsmath}
+\usepackage{color}
 \usepackage{prooftree}
 \usepackage{tikz}
+
+\usepackage{draftwatermark}
+\SetWatermarkText{DRAFT}
+\SetWatermarkFontSize{5cm}
 
 \usetikzlibrary{patterns}
 
@@ -50,6 +55,9 @@ However, unlike typical capabilities, Supervisionary's capabilities are extremel
 
 \section{Introduction}
 \label{sect.introduction}
+
+This paper probes the intersection of operating system design and implementations of the foundations of mathematics.
+This is, admittedly, a rather unorthodox mix of subjects, and indeed this paper is rather unorthodox in its progression---especially for a submission to a venue dedicated to type theory---beginning first with a general overview of common principles in operating system implementation before getting to the main meat of the paper, wherein we propose a new and potentially very interesting way of writing proof-checking software.
 
 \subsection{On operating systems}
 
@@ -114,7 +122,7 @@ The two communicate across a system call boundary (dashed line) using system cal
 \label{fig.operating-system.schematic}
 \end{figure}
 
-Most commodity operating systems---that is, Microsoft Windows and Unix-derivatives\footnote{To guard against quibbling over research operating systems like exokernels and similar which can be argued not to fit this pattern}---fit a common pattern and are architected around a relatively self-contained, trusted component typically called the system \emph{kernel}.
+Most commodity operating systems---that is, Microsoft Windows and Unix-derivatives\footnote{``Commodity'': to guard against pedantic quibbling over research operating system designs like exokernels and similar which can be argued not to fit this pattern}---fit a common pattern and are architected around a relatively self-contained, trusted component typically called the system \emph{kernel}.
 
 At system initialisation, the kernel takes control of all system resources.
 Thereafter, untrusted user-space applications wishing to make use of a device, for example, must pass through the kernel in order to do so, which can either choose to gate or allow access.
@@ -882,7 +890,7 @@ Supervisionary's kernel manages a series of \emph{heaps}, or private memories.
 These heaps contain different \emph{kernel objects}, of various kinds: type-formers, types, constants, terms, and theorems.
 
 The most foundational of all of the heaps is the heap of type-formers.
-Each cell within the heap is either \emph{unallocated} or \emph{allocated} and, in the latter case, therefore contains a natural number \emph{arity} for a type-former, encoded as an unsigned 64-bit machine word.
+Each cell within the heap is either \emph{unallocated} or \emph{allocated} and, in the latter case, contains a natural number \emph{arity} for a type-former, encoded as an unsigned 64-bit machine word.
 New type-formers are registered within the heap by invoking a dedicated system call from user-space---\texttt{TypeFormer.Register}---which takes as input the arity of the type-former and in response allocates a fresh cell, returning the address of the cell back to user-space.
 This address is the handle to the new type-former kernel object, now under management by the Supervisionary kernel, and must be used by user-space to refer to this object henceforth---perhaps to query the arity of the type-former stored at a particular address in Supervisionary's heap, via the \texttt{TypeFormer.Arity} system call, for example, which exists for this purpose and takes a handle as input, returning either an arity or a defined error code back to user-space, indicating that the input handle is \emph{dangling}, and cannot be \emph{dereferenced} to obtain an arity.
 
@@ -892,16 +900,30 @@ The existence of these pre-registered type-formers must be understood by user-sp
 
 \subsubsection*{The type heap}
 
-Building atop the heap of type-formers is another Supervisionary heap: the heap of types.
+Building atop the heap of type-formers is another heap: the heap of types.
 Referring back to the grammar of HOL types introduced in Subsection~\ref{subsect.implemented.logic}, all allocated entries within this heap are tagged either with a \texttt{V}, indicating that they are a type-variable, or with an \texttt{F}, indicating that they are a ``combination'' of a type-former applied to a list of argument types.
 
 Type-variable entries only contain one datum: the \emph{name} of the type-variable, which we take to be an unsigned 64-bit machine word.
 On the other hand, cells tagged with the combination tag also contain a pointer into the type-former heap, indicating which type-former is being applied, and contain a list of pointers back into the type heap itself, identifying the type arguments of the combination.
 Figure~\ref{fig.type-former.type.heap} shows a schematic diagram of dependencies between cells within the two heaps.
 
+Like the type-former heap, Supervisionary also boots with some entries in the type heap pre-registered, corresponding to common or useful types used to boostrap the rest of the logic.
+These include the Boolean type, $\mathsf{bool}$, common type variables---$\alpha$ and $\beta$, for example---as well as larger, more complex types such as the type of the polymorphic equality, $\alpha \Rightarrow \alpha \Rightarrow \mathsf{bool}$.
+Again, the handles for all of these pre-registered entities must be understood by user-space.
+
 Obviously, the Supervisionary kernel must be careful in its management of its heaps, and this topic becomes pressing now we have introduced two heaps with dependencies between them.
 In particular, Supervisionary maintains a series of \emph{kernel invariants} which hold immediately out of boot and must be preserved by all system calls.
-One 
+One key invariant is the idea that heaps only ever \emph{grow} monotonically, and allocated entries are immutable---once an object is allocated into the heap it cannot be removed or modified in any way, lest we introduce an unsoundness (by e.g., modifying the $\mathsf{bool}$ type, or the truth constant, $\top$, or similar).
+Moreover, heaps should always remain ``inductive'', in the sense that their cells do not contain any dangling pointers that do not point-to allocated cells in the same or other heaps.
+Essentially, this latter property forces the various objects under Supervisionary's management to correctly follow the grammar of types and terms introduced in Subsection~\ref{subsect.implemented.logic}, with larger objects being gradually ``built up'' out of smaller ones.
+
+Note that the Supervisionary ABI for working with types is much more well-developed than for type-formers.
+In addition to basic system calls for registering new types with the kernel, Supervisionary also provides a suite of more complex system calls for computing the variables appearing in a type, performing a type-substitution on a type, and similar.
+This latter call---\texttt{Type.Substitute}---is interesting for two reasons: first, as mentioned above, once kernel objects are registered in a heap they are immutable.
+As a result, this system call allocates a new type, the result of the substitution, in the type heap upon success.
+Moreover, the substitution to be applied to the type can be arbitrarily large, consisting of an unbound number of type variable-to-type mappings.
+As a result, this system call takes a pair of base pointers and a pair of lengths, one each for a buffer of variables and a buffer of handles pointing-to types in the type heap.
+These base pointers point-into a buffer in the calling user-space program's memory space, which the Supervisionary kernel reads to 
 
 \subsection{The kernel system call interface}
 
@@ -918,5 +940,35 @@ One
 \subsection{Related work}
 
 \subsection{Future work}
+
+Aside from the inherent amusement in structuring a proof-assistant in this way, Supervisionary also opens up several interesting new lines of future work.
+
+\subsubsection*{Hardware-accelerated proof-checking}
+
+As mentioned earlier, from the perspective of user-space software an operating system's system call interface presents as a suite of particularly CISC-like machine instructions with a rather strange method of invocation.
+Indeed, the combination of the Supervisionary system calls and the host Wasm instruction set can be, itself, thought of as a new, derived instruction set extending Wasm with new instructions for proof construction and management.
+
+As a result, note that the Supervisionary system call interface is already particularly well-suited to being implemented as an extension to the Arm instruction set or RISC-V instruction sets, for example.
+Already, the mechanism through which Supervisionary isolates itself, via private memories, is rather ``hardware like'', and maps nicely onto existing hardware features.
+Whilst the present Supervisionary system call interface makes extensive use of ``pointer-like'' handles to refer to kernel objects, on a real hardware implementation these handles could \emph{literally} be pointers into private memories.
+Moreover, the system call interface itself is also further carefully designed to avoid arbitrarily large recursive structures, difficult for an instruction set architecture to handle, from being passed to the kernel.
+Rather, kernel objects are gradually built up out of smaller, already-existing objects.
+We believe that this idea maps nicely onto an instruction set architecture, and implementing a hardware-based proof-checker for HOL using the ideas in Supervisionary is future work.
+
+\subsubsection*{Transferring theorems between systems}
+
+Consider compiling another implementation of HOL---for example, HOL Light---into Wasm.
+The Supervisionary implementation of HOL is sufficiently similar that it should be possible to ``rip out'' the HOL Light kernel and replace it with a shim layer that exposes the same interface but simply calls into Supervisionary's system calls to implement kernel functionality, with some extra internal book-keeping for handle management.
+From this, one can immediately ``import'' the entire HOL Light library directly into Supervisionary, merely by having HOL Light bootstrap itself.
+
+This approach can be used to transfer results from one HOL implementation to another.  In particular, consider doing the same kernel shim modification with \emph{another} implementation of HOL, for example, HOL4, written in a different programming language to HOL Light.
+This too, can also be compiled to Wasm, and can bootstrap itself using Supervisionary.
+Now, the HOL4 kernel is ``sitting on top'' of a series of heaps populated already by HOL Light, and can make reference to these existing results, or build on top of them, if desired.
+
+Note that this provides an alternative method of transferring results between implementations of HOL, in contrast to existing approaches like OpenTheory.
+All results, independent of which system ultimately generated them, are derived within a single, common logical system implemented by Supervisionary.
+Essentially, the two systems makes use of Supervisionary's heaps as their joint ``source of truth'' to transfer results.
+
+\subsubsection*{Enforcing runtime correctness and security properties}
 
 \end{document}
