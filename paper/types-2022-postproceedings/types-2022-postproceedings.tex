@@ -1,4 +1,4 @@
-\documentclass[a4paper, UKenglish, cleveref, autoref, thm-restate]{lipics-v2021}
+\documentclass[a4paper, UKenglish, cleveref, autoref, thm-restate, colorlinks]{lipics-v2021}
 
 \usepackage{amsmath}
 \usepackage{prooftree}
@@ -68,13 +68,13 @@ Crucially, this component must be kept isolated from untrusted automation at all
 
 Whilst markedly different in purpose, in some essential ways operating system and proof-assistant kernels are tasked with the same job, namely enforcing system-wide invariants in the face of unbridled interaction with untrusted code.  Yet the mechanisms through which the two types of kernel protect themselves are significantly different.
 In this paper, we introduce \emph{Supervisionary}, the kernel of a prototype programmable proof-checking system for Gordon's HOL that is organised in a manner more reminiscent of operating systems than typical LCF-style proof-checkers.
-Supervisionary implements a kernel that executes at a relative level of privilege compared to untrusted automation, with trusted and untrusted system components communicating across a limited system call boundary to indirectly manipulate kernel objects managed by the Supervisionary kernel via handles.
+Supervisionary implements a kernel that executes at a relative level of privilege compared to untrusted automation, with trusted and untrusted system components communicating across a limited system call boundary to indirectly manipulate kernel objects managed by the Supervisionary kernel denoted by handles.
 
 Unusually, Supervisionary has no ``metalanguage'' in the LCF sense, as the language used to implement the kernel, and the language used to implement automation, need not be the same.
-Indeed, \emph{any} programming language can be used to implement automation for Supervisionary providing the resulting binary respects the Supervisionary kernel calling convention and binary interface, with no risk to system soundness.
-Moreover, we observe that Supervisionary allows arbitrary programming languages to be endowed with facilities for proof-checking.
-Indeed, the handles that Supervisionary uses to reference kernel objects under its management may be thought of as a form of \emph{capability}, in the security sense.
-However, unlike typical capabilities, Supervisionary's capabilities are extremely expressive, essentially capturing the full expressive power of HOL, and can potentially be used to enforce fine-grained correctness and security properties at runtime.
+\emph{Any} programming language can be used to implement automation for Supervisionary, providing the resulting binary respects the Supervisionary kernel calling convention and binary interface, with no risk to system soundness.
+Further, we observe that Supervisionary allows arbitrary programming languages to be endowed with facilities for proof-checking.
+Indeed, the handles that Supervisionary uses to reference kernel objects under its management may be thought of as a form of \emph{capability}, in the computer security sense.
+Moreover, these capabilities are extremely expressive, essentially capturing the full expressive power of HOL, and can potentially be used to enforce fine-grained correctness and security properties of programs at runtime.
 \end{abstract}
 
 \section{Introduction}
@@ -937,132 +937,75 @@ Adopting the convention that type-variable $\alpha$ is at \texttt{0x0} in the ty
 
 \subsection{The type-former heap}
 
-\begin{figure}[t]
-\begin{center}
-\begin{tabular}{lll}
-\emph{Name}                      & \emph{Arguments} & \emph{Description} \\
-\hline
-\texttt{TypeFormer.Register}     & Arity            & Allocates a fresh handle and returns it \\
-\texttt{TypeFormer.Resolve}      & Handle           & An arity if handle points-to a registered \\
-                                 &                  & type-former, error otherwise \\
-\texttt{TypeFormer.IsRegistered} & Handle           & Boolean indicating if the handle points-to \\
-                                 &                  & a registered type-former or not \\
-\end{tabular}
-\end{center}
-\caption{Table of Supervisionary system calls for type-former management}
-\label{fig.type-former.system-calls}
-\end{figure}
-
-The most foundational of all of the heaps is the heap of type-formers.
+The most foundational of all of the heaps is the heap of type-formers, which is manipulated and queried using a series of dedicated system calls.
 Each cell within the heap is either \emph{unallocated} or \emph{allocated} and, in the latter case, contains a natural number \emph{arity} for a type-former, encoded as an unsigned 64-bit machine word.
-New type-formers are registered within the heap by invoking a dedicated system call from user-space---\texttt{TypeFormer.Register}---which takes as input the arity of the type-former and in response allocates a fresh cell, returning the address of the cell back to user-space.
-This address is the handle to the new type-former kernel object, now under management by the Supervisionary kernel, and must be used by user-space to refer to this object henceforth---perhaps to query the arity of the type-former stored at a particular address in Supervisionary's heap, via the \texttt{TypeFormer.Arity} system call, for example, which exists for this purpose and takes a handle as input, returning either an arity or a defined error code back to user-space, indicating that the input handle is \emph{dangling}, and cannot be \emph{dereferenced} to obtain an arity.
+New type-formers are registered within the heap by invoking a dedicated system call from user-space---\texttt{TypeFormer.Register}---which takes as input the arity of the type-former and in response allocates a fresh cell, returning the address of the cell back to user-space as the output of the system call.
+This address is the handle to the new type-former kernel object, now under management by the Supervisionary kernel, and must be used by user-space to refer to this object henceforth.
+For example, a handle can be passed to the system call \texttt{TypeFormer.IsRegistered} system call to test whether a handle denotes a registered type-former.
+Alternatively, the \texttt{TypeFormer.Resolve} system call can be used to \emph{dereference} a handle, in order to obtain an arity, providing that it does indeed denote a registered type-former, otherwise returning a defined error code.
 
 Note that type-formers are essentially ``named'' by their handle: there may be many type-formers with the same arity registered with the kernel, and the particular meaning of any type-former is largely a convention of user-space, outside of the purview of the Supervisionary kernel.
-Yet, there are exceptions to this rule: two primitive type-formers are pre-registered within the type-former heap on system boot: the $\mathsf{bool}$ type-former, registered at address \texttt{0x0} and with arity $0$, and the function-space type-former $\Rightarrow$, registered at address \texttt{0x1}, with arity $2$.
-The existence of these pre-registered type-formers must be understood by user-space, and essentially forms part of the Supervisionary system interface, in a similar vein to how the distinguished file handles \texttt{stdout} and \texttt{stdin} are part of the POSIX system interface, too.
+However, there are exceptions to this rule.
+Two primitive type-formers are pre-registered within the type-former heap on system boot and hold special significance for the kernel.
+These are the $\mathsf{bool}$ type-former, registered at address \texttt{0x0} with arity $0$, and the function-space type-former $\Rightarrow$, registered at address \texttt{0x1}, with arity $2$.
+The existence of these pre-registered type-formers must be understood by user-space, and essentially forms part of the Supervisionary system interface.
+Note that this is similar to how the distinguished file handles \texttt{stdout} and \texttt{stdin} are part of the POSIX system interface, and their hard-coded values must be understood by user-space to write or read from standard output and input.
 
 \subsection{The type heap}
 
-\begin{figure}[t!]
-\begin{center}
-\begin{tabular}{lll}
-\emph{Name}                        & \emph{Arguments} & \emph{Description} \\
-\hline
-\texttt{Type.Register.Variable}    & \\
-\texttt{Type.Register.Combination} & \\
-\texttt{Type.Register.Function}    & \\
-\texttt{Type.Resolve}              & \\
-\texttt{Type.IsRegistered}         & \\
-\texttt{Type.Split.Variable}       & \\
-\texttt{Type.Test.Variable}        & \\
-\texttt{Type.Size}                 & \\
-\texttt{Type.Variables}            & \\
-\texttt{Type.Substitute}           & \\
-\end{tabular}
-\end{center}
-\caption{(Excerpted) table of Supervisionary system calls for type management}
-\label{fig.type.system-calls}
-\end{figure}
+Building atop the heap of type-formers is the heap of types.
+This heap is queried and manipulated using another series of system calls.
+Note that the interface for working with types is much more complex than that for type-formers, so is only summarised here.
 
-Building atop the heap of type-formers is another heap: the heap of types.
-Referring back to the grammar of HOL types introduced in Section~\ref{sect.implemented.logic}, all allocated entries within this heap are tagged either with a \texttt{V}, indicating that they are a type-variable, or with an \texttt{F}, indicating that they are a ``combination'' of a type-former applied to a list of argument types.
-
+Recalling the grammar of HOL types, introduced in Section~\ref{sect.implemented.logic}, we note that types are either a type-variable or a \emph{combination} of a type-former applied to a list of types, and all entries within the type heap are therefore tagged indicating whether they are a type-variable or a combination.
 Type-variable entries only contain one datum: the \emph{name} of the type-variable, which we take to be an unsigned 64-bit machine word.
 On the other hand, cells tagged with the combination tag also contain a pointer into the type-former heap, indicating which type-former is being applied, and contain a list of pointers back into the type heap itself, identifying the type arguments of the combination.
-Figure~\ref{fig.type-former.type.heap} shows a schematic diagram of dependencies between cells within the two heaps.
+Figure~\ref{fig.type-former.type.heap} shows a schematic diagram of dependencies between cells within the two heaps, wherein we use \texttt{V} to tag type-variables and \texttt{F} to tag combinations.
 
 Like the type-former heap, Supervisionary also boots with some entries in the type heap pre-registered, corresponding to common or useful types used to boostrap the rest of the logic.
 These include the Boolean type, $\mathsf{bool}$, common type variables---$\alpha$ and $\beta$, for example---as well as larger, more complex types such as the type of the polymorphic equality, $\alpha \Rightarrow \alpha \Rightarrow \mathsf{bool}$.
 Again, the handles for all of these pre-registered entities must be understood by user-space.
 
+Further derived types, built from primitive objects or otherwise, may be built using \texttt{Type.Register.Variable} and \texttt{Type.Register.Combination} system calls for constructing basic types.
+The first takes as input only a 64-bit machine word---the name of the variable---and immediately registers a new type in the type heap, returning the newly-allocated handle.
+On the other hand, \texttt{Type.Register.Combination} takes as input a handle pointing-to a registered type-former in the type-former heap and a list of handles pointing back into the type heap.
+The system call fails if any of these handles dangle, or denote an object of the wrong kind, or if a list of type handles is presented with a length differing from the registered arity of the type-former.
+Lists of handles are passed to system calls by passing a base pointer, denoting the beginning of the list (or rather, array) with an explicit length.
+Substitutions, for the \texttt{Type.Substitution} system call, which performs a type-substitution, are passed as two lists: one for the domain of the substitution, another for the range.
+
+It is sometimes convenient to test the structure of a type pointed-to by a handle.
+This can be done using system calls like \texttt{Type.Test.Combination} which takes a handle and returns a Boolean value indicating whether the corresponding type is a combination.
+A family of ``splitting'' system calls---\texttt{Type.Split.Variable}, for example---can also be used to deconstruct a type.
+This takes a handle and returns the name of the variable pointed-to by the handle, if it is indeed a type-variable.
+Similar functions also exist for type combinations, and allow user-space to ``pattern match'' on types.
+
+A system call, \texttt{Type.Variables}, also exists for computing the type-variables appearing within a term.
+Implementing this as a system call is a challenge, as the number of variables to be returned---and hence the size of buffer that user-space needs to set aside to hold them, and which Supervisionary will write into---is unpredictable.
+To resolve this, the kernel exposes another system call, \texttt{Type.Size}, which computes the \emph{size} of a type which bounds the number of variables appearing within a type.
+By querying this, user-space can first allocate sufficient memory within its own address space to hold the set of type-variables before calling \texttt{Type.Variables} with a pointer to the base of the allocated buffer.
+
 Obviously, the Supervisionary kernel must be careful in its management of its heaps, and this topic becomes pressing now we have introduced two heaps with dependencies between them.
 In particular, Supervisionary maintains a series of \emph{kernel invariants} which hold immediately out of boot and must be preserved by all system calls.
-One key invariant is the idea that heaps only ever \emph{grow} monotonically, and allocated entries are immutable---once an object is allocated into the heap it cannot be removed or modified in any way, lest we introduce an unsoundness (by e.g., modifying the $\mathsf{bool}$ type, or the truth constant, $\top$, or similar).
+One key invariant is the idea that heaps only ever \emph{grow} monotonically, and allocated entries are immutable.
+Once an object is allocated into the heap it cannot be removed or modified in any way, lest we introduce an unsoundness for example, by modifying the $\mathsf{bool}$ type, or the truth constant, $\top$, or something similarly catastrophic.
 Moreover, heaps should always remain ``inductive'', in the sense that their cells do not contain any dangling pointers that do not point-to allocated cells in the same or other heaps.
-Essentially, this latter property forces the various objects under Supervisionary's management to correctly follow the grammar of types and terms introduced in Subsection~\ref{subsect.implemented.logic}, with larger objects being gradually ``built up'' out of smaller ones.
+Essentially, this latter property forces the various objects under Supervisionary's management to correctly follow the grammar of types and terms introduced in Section~\ref{sect.implemented.logic}, with larger objects being gradually ``built up'' out of smaller ones.
 
-Note that the Supervisionary ABI for working with types is much more well-developed than for type-formers.
-In addition to basic system calls for registering new types with the kernel, Supervisionary also provides a suite of more complex system calls for computing the variables appearing in a type, performing a type-substitution on a type, and similar.
-This latter call---\texttt{Type.Substitute}---is interesting for two reasons: first, as mentioned above, once kernel objects are registered in a heap they are immutable.
-As a result, this system call allocates a new type, the result of the substitution, in the type heap upon success.
-Moreover, the substitution to be applied to the type can be arbitrarily large, consisting of an unbound number of type variable-to-type mappings.
-As a result, this system call takes a pair of base pointers and a pair of lengths, one each for a buffer of variables and a buffer of handles pointing-to types in the type heap.
-These base pointers point-into a buffer in the calling user-space program's memory space, which the Supervisionary kernel reads to 
+\subsection{The constant and term heap}
 
-\subsection{The constant heap}
+Building on the heap of types is the heap of constants, keeping track of registered term constants.
+Again, this is pre-provisioned with a series of primitive constants, corresponding to the logical constants and connectives, at boot-time.
+The system call interface for constants is similar to that for type-formers, exposing just three system calls for registering new constants, dereferencing handles, and testing whether a handle denotes a registered constant.
 
-\begin{figure}[t!]
-\begin{center}
-\begin{tabular}{lll}
-\emph{Name}                      & \emph{Arguments} & \emph{Description} \\
-\hline
-\texttt{Constant.Register}       & Handle, Handle   & \\
-\texttt{Constant.Resolve}        & Handle           & \\
-\texttt{Constant.IsRegistered}   & Handle           &
-\end{tabular}
-\end{center}
-\caption{Table of Supervisionary system calls for constant management}
-\label{fig.constant.system-calls}
-\end{figure}
-
-\subsection{The term heap}
-
-\begin{figure}[t!]
-\begin{center}
-\begin{tabular}{lll}
-\emph{Name}                         & \emph{Arguments} & \emph{Description} \\
-\texttt{Term.Register.Variable}     & \\
-\texttt{Term.Register.Constant}     & \\
-\texttt{Term.Register.Application}  & \\
-\texttt{Term.Register.Lambda}       & \\
-\texttt{Term.IsRegistered}          & \\
-\texttt{Term.Split.Application}     & \\
-\texttt{Term.Test.Lambda}           & \\
-\texttt{Term.Type.Infer}            & \\
-\texttt{Term.Type.Variables}        & \\
-\texttt{Term.Substitute}            &
-\end{tabular}
-\end{center}
-\caption{(Excerpted) table of Supervisionary system calls for term management}
-\label{fig.term.system-calls}
-\end{figure}
+Another, further heap---the heap of terms---is also used to construct and manipulate terms.
+System calls for constructing, testing, and pattern matching on terms are provided, similar to those previously discussed within the context of other heaps.
+Further, new special-purposes system calls, for example \texttt{Term.Type.Infer} allow user-space to infer the type of a registered term, if any, whilst \texttt{Term.Substitute} performs a capture-avoiding substitution on a term.
+Note that handles for terms actually denote $\alpha$-equivalence classes of terms---at present, we use a name-carrying syntax, but could implement this using De Bruijn indices or levels, leading to a more efficient implementation.\footnote{Naturally, this would come at the mental cost of actually having to use De Bruijn indices.}
 
 \subsection{The theorem heap}
 
-\begin{figure}[t!]
-\begin{center}
-\begin{tabular}{lll}
-\emph{Name}                                   & \emph{Arguments} & \emph{Description} \\
-\texttt{Theorem.Split.Hypotheses}             & \\
-\texttt{Theorem.Register.Refl}                & \\
-\texttt{Theorem.Register.Falsity.Elimination} & \\
-\texttt{Theorem.Register.Forall.Introduction} &
-\end{tabular}
-\end{center}
-\caption{(Excerpted) table of Supervisionary system calls for theorem management}
-\label{fig.theorem.system-calls}
-\end{figure}
+The final, and most important heap maintained by the Supervisionary kernel is the heap of theorems.
+Every other Supervisionary heap exists to support this heap, and Supervisionary 
 
 \subsection{Specifying kernel functions}
 
