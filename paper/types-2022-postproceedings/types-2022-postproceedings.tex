@@ -150,7 +150,7 @@ User-space programs are typically written making use of an abstraction library, 
 \label{fig.operating-system.schematic}
 \end{figure}
 
-Most commodity operating systems---that is, Microsoft Windows and Unix-derivatives\footnote{\emph{Commodity} here is used to guard against pedantic quibbling over research operating system designs---like exokernels and other oddities---which arguably do not fit this pattern}---fit a common pattern and are architected around a relatively self-contained, trusted component typically called the system \emph{kernel}.
+Most commodity operating systems---that is, Microsoft Windows and Unix-derivatives\footnote{\emph{Commodity} here is used to guard against pedantic quibbling over research operating system designs---like exokernels~\cite{engler95exokernel} and other oddities---which arguably do not fit this pattern.}---fit a common pattern and are architected around a relatively self-contained, trusted component typically called the system \emph{kernel}.
 
 The kernel is the sole component that can interface unfettered with all system resources, including devices and other system hardware.
 Untrusted user-space applications make use of kernel interfaces in order to make use of a device or any other system resource managed by the kernel.
@@ -166,7 +166,7 @@ Here, software executing at higher-privilege---in our case, an operating system 
 Moreover, software executing at a higher-level of privilege can ``peer in'' and potentially modify the runtime state of software executing at a relatively lower-level of privilege, reading data from, or writing data to, a buffer within the memory space of an untrusted user-space process, for example.
 In this sense, a kernel can ``supervise'' or ``watch over'' untrusted user-space---essentially the inspiration for the, possibly now archaic, alternative phrasing for an operating system kernel: \emph{supervisor}.
 
-Moreover, modern microprocessors also provide a form of memory management built around page tables.
+Moreover, modern microprocessors also provide a form of memory management built around page tables (see e.g.~\cite{arm-vmsa}).
 These data structures have a dual role: primarily, they are used for the virtualisation of system memory via address translation, granting user-space software the illusion that it owns the entire physical address space of the machine, by presenting a virtual address space to user-space programs.
 Essentially, address translation induces a notion of \emph{ownership} of pages of physical memory within the system, with a page of physical memory ``owned'' by a principal (either the operating system, or a user-space process) if it is ``mapped in'' to that principal's address space.
 Moreover, page tables are also used for storing the attributes of pages of memory, including read-write-execute permissions.
@@ -1000,7 +1000,7 @@ The system call interface for constants is similar to that for type-formers, exp
 Another, further heap---the heap of terms---is also used to construct and manipulate terms.
 System calls for constructing, testing, and pattern matching on terms are provided, similar to those previously discussed within the context of other heaps.
 Further, new special-purposes system calls, for example \texttt{Term.Type.Infer} allow user-space to infer the type of a registered term, if any, whilst \texttt{Term.Substitute} performs a capture-avoiding substitution on a term.
-Note that handles for terms actually denote $\alpha$-equivalence classes of terms---at present, we use a name-carrying syntax, but could implement this using De Bruijn indices or levels, leading to a more efficient implementation.\footnote{Naturally, this would come at the mental cost of actually having to use De Bruijn indices.}
+Note that handles for terms actually denote $\alpha$-equivalence classes of terms---at present, we use a name-carrying syntax, but could implement this using De Bruijn indices or levels, leading to a more efficient implementation.\footnote{Naturally, this would come at the continued mental cost of actually having to use De Bruijn indices.}
 
 \subsection{The theorem heap}
 
@@ -1077,5 +1077,7 @@ This method could not only provide a quick way of bootstrapping a library of for
 We leave investigating this in more detail for future work.
 
 \subsection{Closing remarks}
+
+\bibliography{types-2022-postproceedings.bib}
 
 \end{document}
