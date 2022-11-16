@@ -4,6 +4,7 @@
 \usepackage{amssymb}
 \usepackage{color}
 \usepackage{prooftree}
+\usepackage{stackrel}
 \usepackage{tikz}
 
 \newcommand{\todo}[1]{}
@@ -156,7 +157,7 @@ User-space programs are typically written making use of an abstraction library, 
 \label{fig.operating-system.schematic}
 \end{figure}
 
-Most commodity operating systems---that is, Microsoft Windows and Unix-derivatives\footnote{\emph{Commodity} here is used to guard against pedantic quibbling over research operating system designs---like exokernels~\cite{engler95exokernel} and other oddities---which arguably do not fit this pattern.}---fit a common pattern and are architected around a relatively self-contained, trusted component typically called the system \emph{kernel}.
+Most commodity operating systems---that is, Microsoft Windows and Unix-derivatives\footnote{\emph{Commodity} here is used to guard against pedantic quibbling over research operating system designs---like exokernels~\cite{engler95exokernel} and other oddities---which arguably do not fit this pattern.}---fit a common pattern and are architected around a relatively self-contained, trusted component typically called the system \emph{kernel}~\cite{DBLP:books/daglib/0019512}.
 
 The kernel is the sole component that can interface unfettered with all system resources, including devices and other system hardware.
 Untrusted user-space applications make use of kernel interfaces in order to make use of a device or any other system resource managed by the kernel.
@@ -265,7 +266,7 @@ All of the paraphernalia of a typical HOL implementation---type-formers, types, 
 These kernel objects are never exposed \emph{directly} to user-space, rather, they are manipulated by the Supervisionary kernel on user-space's behalf.
 Handles---which can be thought of as pointers, pointing into Supervisionary's private memories---are used by a user-space process to identify kernel objects that the kernel should manipulate or query.
 
-Notably, Supervisionary is also not implemented in a typed functional programming language, as is typical of most programmable proof-assistants, but is rather implemented in the decidedly \emph{unsafe} systems programming language, Rust.
+Notably, Supervisionary is also not implemented in a typed functional programming language, as is typical of most programmable proof-assistants, but is rather implemented in the decidedly \emph{unsafe} systems programming language, Rust~\cite{DBLP:phd/dnb/Jung20}.
 Note that this decision introduces no risk to system soundness, as Supervisionary's soundness ultimately rests on the continued separation of kernel-private data from Supervisionary's analogue of user-space---using privilege and private memories---and not on the type system of the implementation programming language.
 Moreover, as user-space and kernel communicate across a defined system call interface, untrusted user-space may also be written in \emph{any} programming language capable of producing code that is binary-compatible with the Supervisionary kernel.
 Supervisionary therefore has no ``metalanguage'' in the LCF sense, but rather an implementation language, with automation potentially written in multiple languages---maybe even a mix.
@@ -479,7 +480,7 @@ f : \tau \Rightarrow \tau' \;\;\; x_\tau \notin fv(f)
 \label{fig.natural.deduction}
 \end{figure}
 
-Supervisionary implements a variant of Gordon's HOL, a classical higher-order logic which can be intuitively understood as Church's Simple Theory of Types~\cite{DBLP:journals/jsyml/Church40} extended with ML-style top-level polymorphism.
+Supervisionary implements a variant of Gordon's HOL~\cite{DBLP:conf/tphol/Gordon91}, a classical higher-order logic which can be intuitively understood as Church's Simple Theory of Types~\cite{DBLP:journals/jsyml/Church40} extended with ML-style top-level polymorphism.
 We introduce the basics of this logic here, introducing just enough material so that the unfamiliar reader can follow the rest of the paper.
 
 We fix a denumerable set of \emph{type variables} and use $\alpha$, $\beta$, $\gamma$, and so on, to range arbitrarily over them.
@@ -517,7 +518,7 @@ $\epsilon$ & & $(\alpha \Rightarrow \mathsf{bool}) \Rightarrow \mathsf{\alpha}$
 \end{tabular}
 \end{center}
 Most of the constant above are the familiar logical constants and connectives of first-order logic, lifted into our higher-order setting, and are introduced without further explanation.
-Only the $\epsilon$ constant---Hilbert's \emph{description operator}, a form of choice---may be unfamiliar.
+Only the $\epsilon$ constant---Hilbert's \emph{description operator}~\cite{DBLP:conf/csl/MoserZ03}, a form of choice---may be unfamiliar.
 In HOL, this can be used to ``select'', or ``choose'' an element of a type according to some predicate, and is otherwise undefined if no such element exists.
 Note therefore that all HOL types are inhabited by at least one element, with the term $\eps{x_\tau}\bot$ inhabiting every type.
 We adopt conventional associativity, fixity, and precedence levels when rendering terms using these constants, writing $\phi \longrightarrow \psi$ instead of $(\longrightarrow\ \phi)\psi$, for example, and also suppress explicit type substitutions required to make terms involving polymorphic types well-typed, for example writing $\fall{x_\tau}\phi$ instead of $\forall[\alpha := \tau](\lam{x_\tau}\phi)$.
@@ -526,7 +527,7 @@ We call a finite set of formulae a \emph{context}, ranged arbitrarily over by $\
 We write $\Gamma[x_\tau := r]$ and $\Gamma[\alpha := \tau]$ for the pointwise-lifting of the capture-avoiding substitution and type substitution on terms to contexts, and write $fv(\Gamma)$ for the set $\bigcup \{ fv(r) \mid r \in \Gamma \}$.
 We introduce a two-place \emph{Natural Deduction relation} between contexts and formulae using the rules in Figure~\ref{fig.natural.deduction}, and write $\Gamma \vdash \phi$ to assert that a derivation tree rooted at $\Gamma \vdash \phi$ and constructed according to the rules presented in this figure exists.
 
-Note that our Natural Deduction relation can be simplified following the equational treatment of the quantifiers and connectives discovered by Quine and Henkin, and implemented in the HOL Light proof assistant.
+Note that our Natural Deduction relation can be simplified following the equational treatment of the quantifiers and connectives discovered by Quine and Henkin, and implemented in the HOL Light proof assistant~\cite{DBLP:conf/tphol/Harrison09a}.
 We prefer a more explicit treatment closer to a textbook presentation of Natural Deduction.
 
 \section{The Supervisionary kernel state}
@@ -1019,7 +1020,7 @@ The system call interface for constants is similar to that for type-formers, exp
 Another, further heap---the heap of terms---is also used to construct and manipulate terms, with heap cells tagged with whether they represent a variable, constant, application, or lambda-abstraction, in a similar style to the tagging used for cells in the type heap.
 System calls for constructing, testing, and pattern matching on terms are provided, similar to those previously discussed within the context of other heaps.
 Further, new special-purposes system calls, for example \texttt{Term.Type.Infer} allow user-space to infer the type of a registered term, if any, whilst \texttt{Term.Substitute} performs a capture-avoiding substitution on a term.
-Note that handles for terms actually denote $\alpha$-equivalence classes of terms---at present, we use a name-carrying syntax, but could implement this using De Bruijn indices or levels, leading to a more efficient implementation.\footnote{Naturally, this would come at the continued mental cost of actually having to use, or even think about, De Bruijn indices.}
+Note that handles for terms actually denote $\alpha$-equivalence classes of terms---at present, we use a name-carrying syntax, but could implement this using De Bruijn indices or levels~\cite{Bruijn1972LambdaCN}, leading to a more efficient implementation.\footnote{Naturally, this would come at the continued mental cost of actually having to use, or even think about, De Bruijn indices.}
 
 \subsection{The theorem heap}
 
@@ -1049,7 +1050,7 @@ As a result of this sharing, Supervisionary's heaps remain inductive in the sens
 
 Moreover, we previously mentioned that heaps must continue to grow monotonically at all times, lest we inadvertently introduce an unsoundness into the system by allowing the HOL $\mathsf{bool}$ type, or similar, to be redefined.
 However, note that this invariant \emph{could} be weakened, somewhat, by ``working backwards'' from the kernel's theorem heap and removing objects in other kernel heaps that are not referenced via a transitive points-to relation.
-Essentially this would represent a form of mark-and-sweep \emph{garbage collection} wherein objects in the kernel's theorem heaps are root objects, with other objects deallocated if they are not reachable from these roots.
+Essentially this would represent a form of \emph{mark-and-sweep garbage collection}~\cite{DBLP:books/crc/CRCcompiler2007/SanyalK07} wherein objects in the kernel's theorem heaps are root objects, with other objects deallocated if they are not reachable from these roots.
 Care, however, must be taken to ensure that the primitive kernel objects, pre-provisioned into the heaps at system boot, can never be deallocated, even if currently unreachable.
 Whilst this is possible, this garbage collection process is not implemented in Supervisionary, as sharing compresses the heaps, meaning that there is no pressing need to remove objects from them.
 Moreover, within the context of garbage collection, user-space cannot be sure that a handle generated by the kernel, and previously denoting a registered kernel object, now does not dangle, complicating the Supervisionary programming model.
@@ -1057,24 +1058,33 @@ Moreover, within the context of garbage collection, user-space cannot be sure th
 \subsection{Specifying kernel functions}
 \label{subsect.specifying.kernel.functions}
 
-Implementing and using the Supervisionary kernel is an extended exercise in heap and pointer manipulation.
-To specify the behaviour of some of our kernel system calls, we therefore reach for an existing tool used to specify pointer-manipulating programs: Separation Logic.
+Implementing and using the Supervisionary kernel is an extended exercise in heap and pointer manipulation, and until now the kernel's system calls were explained in an intuitive, informal sense.
+To specify the behaviour of some of our kernel system calls, we therefore reach for an existing tool used to specify pointer-manipulating programs: Separation Logic~\cite{DBLP:conf/lics/Reynolds02, DBLP:conf/popl/IshtiaqO01}.
 
 Working abstractly, we represent handles as elements of the set $\mathbb{N}$ of natural numbers, and use $h$, $h'$, $h''$, and so on, to range over handles.
 For a fixed set $A$, we say that a partial-function $f : \mathbb{N} \rightharpoonup A$ is \emph{finitely-supported} when the set $dom(f) = \{ x \mid f\ x \text{ defined} \}$ is finite.
-We call such a finitely-supported partial map an \emph{$A$-heap}.
+We call such a finitely-supported partial map into a set $A$ an \emph{$A$-heap}.
 We write $0$ for an empty $A$-heap, and for two A-heaps $f$ and $g$ we write $f\ \sharp\ g$ to assert that their domains are disjoint, so $dom(f) \cap dom(g) = \{ \}$.
 This relation is symmetric and $0\ \sharp\ g$ always, for any $g$.
-Moreover, for two A-heaps $f$ and $g$ we can ``glue them'', using the function $f \oplus g$ defined piecewise as:
+Moreover, for two A-heaps $f$ and $g$ we can ``glue them together'', using the function $f \oplus g$, to form a larger A-heap.
+This function is defined piecewise as:
 \begin{align*}
 (f \oplus g)\ x & = f\ x \text{ if $x \in dom(f)$ } \\
 (f \oplus g)\ x & = g\ x \text{ if $x \in dom(g)$ } \\
 (f \oplus g)\ x & \text{ is undefined otherwise }
 \end{align*}
 Note that $f \oplus g$ is well-defined whenever $f\ \sharp\ g$.
-Finally, for $a \in A$, we write $h \mapsto a$ for the \emph{singleton $A$-heap} mapping $h$ to $a$ and undefined at all other points.
+Finally, for $a \in A$, we write $h \mapsto a$ for the \emph{singleton $A$-heap} mapping $h$ to $a$ and remaining undefined at all other points.
 
-\todo{introduce different HOL objects}
+We define \emph{types}, \emph{constants}, \emph{terms}, and \emph{theorems} by the following non-recursive grammars, where $m$ ranges over arbitrary natural numbers:
+\begin{align*}
+t, t', t'' &::= \mathtt{TyVar}\ m \mid \mathtt{TyFm}\ h\ (h_1, \ldots, h_n) \\
+C, C', C'' &::= \mathtt{TConst}\ h\ h' \\
+r, r', r'' &::= \mathtt{Var}\ m\ h \mid \mathtt{Const}\ h\ h' \mid \mathtt{App}\ h\ h' \mid \mathtt{Lam}\ m\ h\ h' \\
+s, s', s'' &::= \mathtt{Seq}\ (h_1, \ldots, h_n)\ h
+\end{align*}
+We call heaps over types a \emph{type-heap}; similarly for constants, terms, and theorems.
+We also call heaps over natural number arities a \emph{type-former heap}.
 
 Fix a set of kernel states $K$.
 We use $k$, $k'$, $k''$, and so on, to range over kernel states, each of which is a $5$-tuple $\langle F, Ty, C, Tm, Th \rangle$ consisting of a type-former heap, a type heap, a constant heap, a term heap, and a theorem heap respectively.
@@ -1083,39 +1093,63 @@ We extend our notion of disjointness to kernel states, and write $k\ \sharp\ k'$
 We further abuse notation and write $0$ for the \emph{empty kernel state} consisting of five empty heaps, and $k \oplus k'$ for the ``gluing'' of two kernel states together, wherein each of the respective heaps in $k$ and $k'$ are joined pointwise using $\oplus$.
 Note that, again, $k \oplus k'$ is well-defined whenever $k\ \sharp\ k'$.
 
-We define \emph{assertions} as sets of kernel states, use $A$, $B$, $C$, and so on to range over them and write $k \vDash A$ to assert that $k \in A$.
-We pay especial attention to some particular assertions:
-\begin{gather*}
-\bullet \equiv \{ \langle 0, 0, 0, 0, 0 \rangle \}
-\quad
-A \star B \equiv \{ k'' \mid \xsts{k\ k'}k'' = k \oplus k' \text{ and } k\ \sharp\ k' \text{ and } k \vDash A \text{ and } k' \vDash B \}
-\\[0.5ex]
-h \mapsto_{\text{Arity}} a \equiv \{ \langle h \mapsto a, 0, 0, 0, 0 \rangle \}
-\end{gather*}
+We define \emph{assertions} as sets of kernel states, use $A$, $B$, $C$, and so on, to range over them, and write $k \vDash A$ to assert that $k \in A$.
+We pay especial attention to some particular assertions of note that will be useful in specifying some of our system calls:
+\begin{align*}
+\bullet                  &\equiv \{ \langle 0, 0, 0, 0, 0 \rangle \} \\
+A \star B                &\equiv \{ k'' \mid \xsts{k\ k'}k'' = k \oplus k' \text{ and } k\ \sharp\ k' \text{ and } k \vDash A \text{ and } k' \vDash B \} \\
+h \mapsto_{\text{Aty}} a &\equiv \{ \langle h \mapsto a, 0, 0, 0, 0 \rangle \} \\
+h \mapsto_{\text{Typ}} t &\equiv \{ \langle 0, h \mapsto t, 0, 0, 0 \rangle \}
+\end{align*}
+We further define the standard logical constants and connectives as abbreviations for setwise operations, writing $\bot$ for $\{\}$, $C \wedge D$ for $C \cap D$, and $\xsts{x}C\ x$ for $\bigcap_x.\ C\ x$, for example.
 
-\todo{values}
-
+Fix a set of \emph{values}, $V$, consisting \emph{at least} of handles and numeric error codes.
 System calls $e$, $f$, $g$, and so on, are modelled as total functions from kernel states to kernel states which also produce a value as a side-effect, that is $e : K \rightarrow V \times K$.
 Note that though a kernel system call may fail---for example, if its inputs are in an unexpected form, or similar---it should never \emph{crash}, but rather return a specific error code back to the user-space program and maintain the state of the kernel as it was before the system call was invoked.
-Crashes---or \emph{kernel panics}---are reserved for unrecoverable errors, for example the failure of an internal invariant, or similar.
+Crashes, or \emph{kernel panics}, are reserved for unrecoverable errors, for example the failure of an internal invariant, or similar---the Supervisionary equivalent of a ``blue screen of death''.
 
 With this in mind, we define a Separation Logic triple as a three-place relation between an assertion, a system-call, and a function from values to assertions by:
 \begin{displaymath}
 A \vdash e \dashv \lam{r}B \text{ iff for any } C \text{ if } k \vDash A \star C \text{ and } e\ k = \langle v, k' \rangle \text{ then } k' \vDash (\lam{r}B)v \star C
 \end{displaymath}
-
+With this, we specify the behaviour of the $\mathtt{TypeFormer.Register}$ system call as follows:
 \begin{gather*}
-\bullet \vdash \mathtt{TypeFormer.Register}(a) \dashv \lam{h}h \mapsto_{Arity} a
+\bullet \vdash \mathtt{TypeFormer.Register}(a) \dashv \lam{h}h \mapsto_{Aty} a
 \end{gather*}
+Note that this specification correctly captures the fact that the call can never fail: it will always return a handle pointing-to a new cell in the type-former heap, containing the required arity, with no other effects on the kernel heaps.
 
+Specifying kernel system calls which manipulate types, constants, terms, and theorems are more complex as we must assume that any handles contained within these structures point-to allocated cells in an appropriate kernel heap.
+To do this, we make use of a family of \emph{shape predicates} relating encodings of objects within the kernel's heaps to the recursively-defined structures of Section~\ref{sect.implemented.logic}.
+Assuming a bijection $V$ between natural numbers and type-variables, and a bijection $F$ between handles and type-formers, we inductively define the two-place relation $\mathtt{TYPE}\ h\ \tau$:
 \begin{gather*}
-h \mapsto_{Term} t \vdash \mathtt{Theorem.Register.Refl}(h) \dashv \\
-\qquad \lam{r}\xsts{h'}h \mapsto_{Term} t \star h' \mapsto_{Term} h = h' \star r \mapsto_{Theorem} \{\} \vdash h'
+\begin{prooftree}
+h \mapsto_{Typ} \mathtt{TVar}\ m \;\;\; (V\ m\ \alpha)
+\justifies
+\mathtt{TYPE}\ h\ \alpha
+\end{prooftree}
+\\[1ex]
+\begin{prooftree}
+h \mapsto_{Typ} \mathtt{TyFm}\ h'\ (h_1, \ldots, h_n) \star h' \mapsto_{Aty} n \star \mathtt{TYPE}\ h_i\ \tau_i \;\;\; (1 \leq i \leq n, F\ h'\ \mathsf{f})
+\justifies
+\mathtt{TYPE}\ h\ \mathsf{f}(\tau_1, \ldots, \tau_n)
+\end{prooftree}
 \end{gather*}
+We omit comparable shape predicates for constants, terms, and theorems, as the pattern should be clear.
+Note that the basic allocation functions for types, upon success, generate kernel states wherein the $\mathtt{TYPE}$ relation holds.
+For example, assuming a correspondence, $V\ n\ \alpha$, between the natural number $n$ and type-variable $\alpha$:
+\begin{gather*}
+\bullet \vdash \mathtt{Type.Register.Variable}(n) \dashv \lam{h}\mathtt{TYPE}\ h\ \alpha
+\end{gather*}
+Similarly, we have:
+\begin{gather*}
+\;\;\;h \mapsto_{Aty} n \star \mathtt{TYPE}\ h_1\ \tau_1 \star \ldots \star \mathtt{TYPE}\ h_n\ \tau_n \\
+\vdash \mathtt{Type.Register.TypeFormer}(h, h_1, \ldots, h_n) \dashv \\
+\lam{r}h \mapsto_{Aty} n \star \mathtt{TYPE}\ h_1\ \tau_1 \star \ldots \star \mathtt{TYPE}\ h_n\ \tau_n \star \mathtt{TYPE}\ r\ \mathsf{f}(\tau_1, \ldots, \tau_n)
+\end{gather*}
+Which also captures the fact that existing well-formed kernel heaps remain well-formed after invocation of a system call.
+Note that these shape predicate invariants formally capture the kernel invariants previously introduced, albeit informally.
 
-\todo{finish}
-
-\subsection{Programming the kernel}
+\subsection{Programming in user-space}
 
 The system call interface above presents a very low-level, austere interface to user-space code.
 To make programming above Supervisionary less tedious a utility library, similar in function to \texttt{libc}, needs to be provided to user-space in order to raise the level of abstraction above the raw system call interface.
@@ -1197,14 +1231,14 @@ Supervisionary can be used like any other proof assistant, to statically establi
 However, it may also be used to dynamically check the runtime behaviour of programs executing under its supervision, interestingly also using theorem proving.
 Moreover, Supervisionary used in the mode described above allows \emph{any} program written in any programming language to be endowed with support for theorem-proving, and reasoning about its own behaviour.
 Indeed, a program executing on the Supervisionary virtual machine \emph{must} be prepared to explain its adherence to the system security or correctness policy in order to have any hope of performing a side-effect.
-With Supervisionary, proof is no longer the domain of special purpose programming languages like Agda or Idris, but can be extended to any language merely by porting \texttt{libsupervisionary}.
+With Supervisionary, proof is no longer the domain of special purpose programming languages like Agda~\cite{DBLP:conf/icfp/Norell13} or Idris~\cite{DBLP:conf/ecoop/Brady21, DBLP:journals/jfp/Brady13}, but can be extended to any language merely by porting \texttt{libsupervisionary}.
 
 \section{Conclusions}
 \label{sect.conclusions}
 
 \subsection{Related work}
 
-The closest related work to Supervisionary is \emph{VeriML}, an ML-like higher-order programming language with native support for theorem proving in Gordon's HOL.
+The closest related work to Supervisionary is \emph{VeriML}, an ML-like higher-order programming language extended with limited dependent-types that range over terms and theorems of Gordon's HOL~\cite{DBLP:conf/icfp/StampoulisS10}.
 Essentially, VeriML ``internalises'' a typical HOL kernel implementation within a higher-order programming language, promoting the abstract type of theorems---typically \emph{defined} within the system metalanguage---into a native type of the language that can be queried and modified with new, dedicated, domain-specific expressions for theorem construction and manipulation.
 
 From the point-of-view of a typical HOL kernel implementation, VeriML essentially ``pushes the kernel down one layer'' in the hierarchy of abstractions, moving the kernel from a library within the language to a first-class programming language feature.
@@ -1233,7 +1267,7 @@ Lastly, Supervisionary, as an implementation of HOL, is closely related to sever
 The kernels of all of these systems implement very similar logics, albeit with minor modification.
 However, unlike the aforementioned systems, Supervisionary does not follow the typical LCF-style of system organisation, nor is it written in an ML-derivative.
 
-\subsection{Even more future work}
+\subsection{Yet more future work}
 \label{subsect.future.work}
 
 In addition to the ideas discussed in Section~\ref{sect.capabilities.on.steroids}, below, we detail two further novel areas of future research enabled by Supervisionary that we feel are worth drawing attention to:
@@ -1261,7 +1295,7 @@ From this, one can immediately ``import'' the entire HOL Light library directly 
 However, intriguingly, this approach could also be used to transfer results from one HOL implementation to another by essentially performing the same shim trick with a second system.
 Then, this second system can execute on an instance of the Supervisionary virtual machine \emph{after} its heaps have already been populated by the first system.
 With this, the second HOL implementation can make reference to results populated by the first system, or build on top of them, if desired.
-This method could not only provide a quick way of bootstrapping a library of formalized mathematics for Supervisionary, by essentially ``borrowing'' the library of another implementation, but also provides an alternative to OpenTheory for transferring results between systems.
+This method could not only provide a quick way of bootstrapping a library of formalized mathematics for Supervisionary, by essentially ``borrowing'' the library of another implementation, but also provides an alternative to OpenTheory~\cite{DBLP:conf/itp/KumarH12, DBLP:conf/nfm/Hurd11} for transferring results between systems.
 We leave investigating this in more detail for future work.
 
 \subsection{Closing remarks}
