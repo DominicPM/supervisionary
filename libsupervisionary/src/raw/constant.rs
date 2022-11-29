@@ -56,7 +56,7 @@ pub const PREALLOCATED_HANDLE_CONSTANT_EQUALITY: Handle<tags::Constant> =
 
 extern "C" {
     /// Raw ABI binding to the `__constant_is_registered` function.
-    fn __constant_is_registered(handle: RawHandle) -> i32;
+    fn __constant_is_registered(handle: RawHandle) -> bool;
     /// Raw ABI binding to the `__constant_resolve` function.
     fn __constant_resolve(handle: RawHandle, result: *mut RawHandle) -> i32;
     /// Raw ABI binding to the `__constant_register` function.
@@ -76,7 +76,7 @@ where
     let result =
         unsafe { __constant_is_registered(*handle.as_ref().clone() as u64) };
 
-    result == 0
+    result
 }
 
 /// Returns the registered type of the constant pointed-to by `handle`, if any,

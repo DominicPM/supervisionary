@@ -3858,6 +3858,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_CONSTANT_RESOLVE_NAME => {
                 if !type_checking::check_constant_resolve_signature(signature) {
+                    error!("Signature check failed when checking __constant_resolve.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -3872,6 +3874,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_constant_is_registered_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __constant_is_registered.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -3885,6 +3889,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             ABI_CONSTANT_REGISTER_NAME => {
                 if !type_checking::check_constant_register_signature(signature)
                 {
+                    error!("Signature check failed when checking __constant_register.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
