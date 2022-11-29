@@ -15,7 +15,7 @@
 //! [Nick Spinale]: https://nickspinale.com
 //! [Arm Research]: http://www.arm.com/research
 
-use libsupervisionary::type_former::*;
+use libsupervisionary::raw::type_former::*;
 
 fn main() {
     assert!(type_former_is_registered(
