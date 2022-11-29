@@ -2144,9 +2144,9 @@ impl Externals for WasmiRuntimeState {
                     args.nth::<semantic_types::Handle>(0) as usize,
                 );
 
-                let result = self.term_is_registered(term_handle);
-
-                Ok(Some(RuntimeValue::I32(if result { 0 } else { 1 })))
+                Ok(Some(RuntimeValue::I32(
+                    self.term_is_registered(term_handle).into(),
+                )))
             }
             ABI_TERM_REGISTER_VARIABLE_INDEX => {
                 let name = args.nth::<semantic_types::Name>(0);
@@ -3904,6 +3904,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             ABI_TERM_IS_REGISTERED_NAME => {
                 if !type_checking::check_term_is_registered_signature(signature)
                 {
+                    error!("Signature check failed when checking __term_is_registered.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -3918,6 +3920,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_variable_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_variable.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -3932,6 +3936,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_constant_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_constant.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -3946,6 +3952,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_application_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_application.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -3960,6 +3968,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_lambda_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_lambda.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -3974,6 +3984,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_negation_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_negation.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -3988,6 +4000,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_conjunction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_conjunction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4002,6 +4016,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_disjunction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_disjunction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4016,6 +4032,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_implication_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_implication.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4030,6 +4048,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_equality_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_equality.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4044,6 +4064,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_forall_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_forall.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4058,6 +4080,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_register_exists_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_register_exists.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4072,6 +4096,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_split_variable_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_split_variable.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4086,6 +4112,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_split_constant_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_split_constant.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4100,6 +4128,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_split_application_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_split_application.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4113,6 +4143,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             ABI_TERM_SPLIT_LAMBDA_NAME => {
                 if !type_checking::check_term_split_lambda_signature(signature)
                 {
+                    error!("Signature check failed when checking __term_split_lambda.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4127,6 +4159,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_split_negation_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_split_negation.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4141,6 +4175,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_split_conjunction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_split_negation.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4155,6 +4191,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_split_disjunction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_split_disjunction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4169,6 +4207,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_split_implication_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_split_implication.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4183,6 +4223,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_split_equality_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_split_equality.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4196,6 +4238,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             ABI_TERM_SPLIT_FORALL_NAME => {
                 if !type_checking::check_term_split_forall_signature(signature)
                 {
+                    error!("Signature check failed when checking __term_split_forall.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4209,6 +4253,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             ABI_TERM_SPLIT_EXISTS_NAME => {
                 if !type_checking::check_term_split_exists_signature(signature)
                 {
+                    error!("Signature check failed when checking __term_split_exists.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4222,6 +4268,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             ABI_TERM_TEST_VARIABLE_NAME => {
                 if !type_checking::check_term_test_variable_signature(signature)
                 {
+                    error!("Signature check failed when checking __term_test_variable.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4235,6 +4283,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             ABI_TERM_TEST_CONSTANT_NAME => {
                 if !type_checking::check_term_test_constant_signature(signature)
                 {
+                    error!("Signature check failed when checking __term_test_constant.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4249,6 +4299,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_test_application_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_test_application.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4261,6 +4313,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_TERM_TEST_LAMBDA_NAME => {
                 if !type_checking::check_term_test_lambda_signature(signature) {
+                    error!("Signature check failed when checking __term_test_lambda.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4274,6 +4328,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             ABI_TERM_TEST_NEGATION_NAME => {
                 if !type_checking::check_term_test_negation_signature(signature)
                 {
+                    error!("Signature check failed when checking __term_test_negation.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4288,6 +4344,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_test_conjunction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_test_conjunction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4302,6 +4360,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_test_disjunction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_test_disjunction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4316,6 +4376,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_test_implication_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_test_implication.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4329,6 +4391,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             ABI_TERM_TEST_EQUALITY_NAME => {
                 if !type_checking::check_term_test_equality_signature(signature)
                 {
+                    error!("Signature check failed when checking __term_test_equality.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4341,6 +4405,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_TERM_TEST_FORALL_NAME => {
                 if !type_checking::check_term_test_forall_signature(signature) {
+                    error!("Signature check failed when checking __term_test_forall.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4353,6 +4419,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_TERM_TEST_EXISTS_NAME => {
                 if !type_checking::check_term_test_exists_signature(signature) {
+                    error!("Signature check failed when checking __term_test_exists.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4365,6 +4433,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_TERM_FREE_VARIABLES_NAME => {
                 if !type_checking::check_term_fv_signature(signature) {
+                    error!("Signature check failed when checking __term_free_variables.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4377,6 +4447,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_TERM_SUBSTITUTE_NAME => {
                 if !type_checking::check_term_substitute_signature(signature) {
+                    error!("Signature check failed when checking __term_substitute.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4391,6 +4463,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_type_variables_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_type_variables.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4405,6 +4479,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_type_substitute_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_type_substitute.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4417,6 +4493,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_TERM_TYPE_INFER_NAME => {
                 if !type_checking::check_term_type_infer_signature(signature) {
+                    error!("Signature check failed when checking __term_type_infer.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4431,6 +4509,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_type_is_proposition_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __term_type_is_proposition.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));

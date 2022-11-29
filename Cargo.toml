@@ -3,9 +3,10 @@ members = [
     "driver",
     "kernel",
     "libsupervisionary",
+    "tests/constant",
+    "tests/term",
     "tests/type",
     "tests/type_former",
-    "tests/constant",
     "wasmi-bindings"
 ]
 
