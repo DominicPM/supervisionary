@@ -311,7 +311,7 @@ pub fn theorem_register_weaken<T, U>(
 ) -> Result<Handle<tags::Term>, ErrorCode>
 where
     T: Into<Handle<tags::Term>>,
-    T: Into<Handle<tags::Theorem>>,
+    U: Into<Handle<tags::Theorem>>,
 {
     let term_handle = *term_handle.into() as u64;
     let theorem_handle = *theorem_handle.into() as u64;
