@@ -15,7 +15,7 @@
 //! [Nick Spinale]: https://nickspinale.com
 //! [Arm Research]: http://www.arm.com/research
 
-use libsupervisionary::{
+use libsupervisionary::raw::{
     _type::*,
     type_former::{
         PREALLOCATED_HANDLE_TYPE_FORMER_ARROW,

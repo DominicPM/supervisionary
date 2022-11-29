@@ -20,7 +20,7 @@
 //! [Nick Spinale]: https://nickspinale.com
 //! [Arm Research]: http://www.arm.com/research
 
-pub mod runtime_state;
+mod runtime_state;
 mod runtime_trap;
 mod system_call_numbers;
 mod system_interface_types;
