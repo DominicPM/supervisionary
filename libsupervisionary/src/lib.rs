@@ -19,7 +19,5 @@
 //! [Nick Spinale]: https://nickspinale.com
 //! [Arm Research]: http://www.arm.com/research
 
-#![feature(const_fn_trait_bound)]
-
 pub mod build;
 pub mod raw;
