@@ -1,6 +1,6 @@
 [package]
 name       = "libsupervisionary"
 version    = "0.1.0"
-authors    = ["The Veracruz development team"]
+authors    = ["The Veracruz development team", "Dominic Mulligan"]
 edition    = "2018"
 description = "Rust language support for interacting with the Supervisionary kernel."

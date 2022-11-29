@@ -16,7 +16,7 @@
 //! `LICENSE.markdown` file in the *Supervisionary* root directory for licensing
 //! information.
 //!
-//! [Dominic Mulligan]: https://dominic-mulligan.co.uk
+//! [Dominic Mulligan]: https://dominicpm.github.io
 //! [Nick Spinale]: https://nickspinale.com
 //! [Arm Research]: http://www.arm.com/research
 

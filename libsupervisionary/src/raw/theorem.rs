@@ -10,7 +10,7 @@
 //! `LICENSE.markdown` file in the *Supervisionary* root directory for licensing
 //! information.
 //!
-//! [Dominic Mulligan]: https://dominic-mulligan.co.uk
+//! [Dominic Mulligan]: https://dominicpm.github.io
 //! [Arm Research]: http://www.arm.com/research
 
 use crate::raw::{tags, ErrorCode, Handle, Name, RawHandle};

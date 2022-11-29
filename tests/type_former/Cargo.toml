@@ -1,7 +1,7 @@
 [package]
 name        = "type_former"
 version     = "0.1.0"
-authors     = ["The Supervisionary Development Team"]
+authors     = ["The Veracruz Development team", "Dominic Mulligan"]
 edition     = "2018"
 description = "Tests of the type-former ABI."
 
