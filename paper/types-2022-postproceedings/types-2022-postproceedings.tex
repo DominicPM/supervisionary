@@ -162,16 +162,15 @@ Most commodity operating systems---that is, Microsoft Windows and Unix-derivativ
 The kernel is the sole component that can interface unfettered with all system resources, including devices and other system hardware.
 Untrusted user-space applications make use of kernel interfaces in order to make use of a device or any other system resource managed by the kernel.
 As a result, the kernel is essentially a ``pinch point'' for gating access to system resources.
-The kernel also introduces a process abstraction in user-space and is responsible for ensuring the confidentiality and integrity of processes from other, concurrently executing processes.
+The kernel also introduces a process abstraction in user-space and is responsible for ensuring the confidentiality and integrity of concurrently-executing processes, each of which are mutually mistrusting.
 The kernel is therefore \emph{the} key component responsible for enforcing system-wide security policies, and essentially forms the ``root of all trust'' within a computing system.
 It is therefore imperative that the kernel is itself isolated sufficiently from user-space software at all times, lest this role be undermined by a malefactor.
 
 The kernel self-isolates by co-operating with its host hardware.
 In support of this, mainstream microprocessors have, over the years, accreted a variety of now-familiar security features that an operating system kernel can use to defend itself from prying or interference.
-These include \emph{exception levels} or \emph{privilege rings}---as they are variously called, depending on the instruction set architecture---which introduce a notion of \emph{privilege} into the system.
-Here, software executing at higher-privilege---in our case, an operating system kernel\footnote{Note that ``Cloud hosting'' as a viable business proposition essentially rests on this trick being repeated again, with a hypervisor sat in a position of privilege compared to an operating system kernel---executing out of an even higher exception level---and enforcing separation betwixt operating system instances.}---gains permission to program sensitive system registers, controlling how the system operates.
+These include \emph{exception levels} or \emph{privilege rings}, as they are variously called depending on the instruction set architecture, which introduce a notion of \emph{privilege} into the system.
+Here, software executing at higher-privilege---in our case, an operating system kernel\footnote{Note that \emph{Cloud hosting} as a viable business proposition essentially rests on this trick being repeated again, with a hypervisor sat in a position of privilege compared to an operating system kernel---executing out of an even higher exception level---and enforcing separation betwixt operating system instances.}---gains permission to program sensitive system registers, adjust hardware operating frequencies and voltages, and generally control how the system operates.
 Moreover, software executing at a higher-level of privilege can ``peer in'' and potentially modify the runtime state of software executing at a relatively lower-level of privilege, reading data from, or writing data to, a buffer within the memory space of an untrusted user-space process, for example.
-In this sense, a kernel can ``supervise'' or ``watch over'' untrusted user-space---potentially the inspiration for the, possibly now archaic, alternative name for an operating system kernel: \emph{supervisor}.
 
 Modern microprocessors also provide a form of memory management built around page tables (see e.g.~\cite{arm-vmsa}).
 These data structures have a dual role: primarily, they are used for the virtualisation of system memory via address translation, granting user-space software the illusion that it owns the entire physical address space of the machine, presenting a virtual address space to user-space programs.
@@ -239,8 +238,8 @@ It is therefore imperative that the kernel is able to isolate itself sufficientl
 This kernel-centric method of system organisation is known as \emph{the LCF approach} after Milner's eponymous system~\cite{DBLP:books/sp/Gordon79} which first introduced it, and is now the most common way of organising proof-checking systems today.
 See Figure~\ref{fig.proof-assistant.organization} for a diagrammatic representation.
 
-Most modern proof-assistants tend to be written in a ``metalanguage'' which serves as the implementation language for both the kernel and the majority of the untrusted automation that modern proof-assistants provide to users.
-This metalanguage is typically a strongly-typed functional programming language, for example an ML derivative such as OCaml or SML~\cite{DBLP:books/daglib/0069232}, which offer strong modularity and abstraction features.
+Most modern proof-assistants tend to be written in a \emph{metalanguage} which serves as the implementation language for both the kernel and the majority of the untrusted automation that modern proof-assistants provide to users.
+This metalanguage is typically a strongly-typed functional programming language, for example an ML derivative such as OCaml or SML~\cite{DBLP:books/daglib/0069232}, and which offers strong modularity and abstraction features.
 The kernel exploits these programming language features to hide its own data structures from untrusted automation and moreover exposes a carefully limited API for proof-construction and manipulation.
 Notably, in an LCF-style system, the \emph{only} mechanism automation has for constructing an authenticated theorem is by using this API, with the inference rules of the logic exposed as a suite of \emph{smart constructors} manipulating an abstract type of theorems.
 As a result, the kernel is therefore a ``pinch point'' for any proof-construction activity within the system.
@@ -262,7 +261,7 @@ Specifically, the Supervisionary kernel executes at a relative level of privileg
 The trusted kernel, and untrusted user space, communicate across a system call boundary which is carefully designed in order to maintain system soundness.
 
 One consequence of this design is that the Supervisionary kernel immediately takes on a different character to an LCF kernel.
-All of the paraphernalia of a typical HOL implementation---type-formers, types, constants, terms, and theorems---are managed as ``kernel objects'' kept safely under the management of the kernel itself, in kernel-private memory areas.
+All of the paraphernalia of a typical HOL implementation---type-formers, types, constants, terms, and theorems---are managed as \emph{kernel objects} kept safely under the management of the kernel itself, in kernel-private memory areas.
 These kernel objects are never exposed \emph{directly} to user-space, rather, they are manipulated by the Supervisionary kernel on user-space's behalf.
 Handles---which can be thought of as pointers, pointing into Supervisionary's private memories---are used by a user-space process to identify kernel objects that the kernel should manipulate or query.
 
@@ -272,22 +271,17 @@ Moreover, as user-space and kernel communicate across a defined system call inte
 Supervisionary therefore has no ``metalanguage'' in the LCF sense, but rather an implementation language, with automation potentially written in multiple languages---maybe even a mix.
 
 For ease of implementation---and use!---we implement Supervisionary as a WebAssembly~\cite{DBLP:conf/pldi/HaasRSTHGWZB17} (or Wasm, henceforth) host.
-We extend a Wasm virtual machine with new system calls that perform a context switch into Supervisionary---the \emph{host}---which has its own memory isolated from the memory of the executing user-space Wasm process running under its supervision, and inaccessible to it.
-Note that this separation is only one way: the Supervisionary kernel can ``peer in'' to the runtime state of a running Wasm process executing under its supervision and read from, or write to, its private memories.
+We extend a Wasm virtual machine with new system calls that perform a context switch into Supervisionary, which has its own memory isolated from the memory of the executing user-space Wasm process running under its supervision, and inaccessible to it.
+This separation is only one way: the kernel can ``peer in'' to the runtime state of a running Wasm process executing under its supervision and read from, or write to, its private memories.
 This decision means we may experiment with the fundamental ideas behind Supervisionary---namely isolating the kernel using private memory areas, the split between kernel- and ``user-space'', a kernel system call interface---without becoming bogged down in extraneous detail associated with the booting ceremony of a real machine.
 Moreover, we harness work on porting compiler and linker toolchains, allowing our ``user space'' to be written in any programming language with a toolchain capable of targeting Wasm.
 
 Lastly, and more speculatively, Supervisionary's handles can be passed around a program, between different programs executing concurrently or sequentially under Supervisionary's management, or between the user-space program and the kernel.
 Whilst this property is not unique to Supervisionary---values of the abstract type of theorems may also be passed around within any LCF-style system, for example---the objects which these handles denote need not be necessary truths of pure mathematics, but can be contingent truths, themselves \emph{functions} of the runtime state of the program itself, or of the Supervisionary kernel.
-This property \emph{is} unique to Supervisionary, as it rests on Supervisionary's dual status as a proof-assistant kernel, capable of generating theorems, and an extension of a general purpose virtual machine, capable of executing arbitrary programs.
-Here, Supervisionary once again represents a ``pinch point'' that user-space cannot help pass through in order to have any sort of computational effect---other than heating the CPU---on the machine.
-
-Whilst exploring this idea in full is future work, some ideas of how this idea could develop are discussed in Section~\ref{sect.capabilities.on.steroids}.
-But quickly, here, consider one example where this may be useful: Supervisionary could present an extended system call interface to user-space, including system calls for filesystem manipulation, socketed network communication, and all other services typical of an operating system.
-Prior to opening or modifying a file or other system resource on a program's behalf, Supervisionary could ``challenge'' the program to first produce a handle denoting a theorem whose statement expresses some instantiation of a prevailing security or correctness policy.
-In particular, the statement of these challenges can be parametric in the runtime state of the executing program, of the kernel, or of the arguments passed to the system call---a function of the filename of the file to be opened or modified, for example, or the content to be written to the file.
-Essentially now, Supervisionary's handles are transformed from simple pointers denoting kernel objects into \emph{capabilities}, in the information security sense of the word, and which can be used by the system to dynamically enforce arbitrary security or correctness properties, written in HOL, of running programs.
-With this, the distinction between static verification and runtime monitoring of programs is blurred.
+Handles to these theorems, then, act as a form of \emph{capability}, in the computer security sense of that word.
+Note that this property \emph{is} unique to Supervisionary, as it rests on Supervisionary's dual status as a proof-assistant kernel, capable of generating and checking theorems, and an extension of a general purpose virtual machine, capable of executing arbitrary programs.
+Here, Supervisionary exploits its status as a ``pinch point'' that user-space cannot help pass through, in order to have any sort of computational effect, to force user-space to first pass it a handle to a theorem that \emph{proves} that it is acting correctly, per some system-wide policy.
+Some ideas of how this idea could develop are discussed in Section~\ref{sect.capabilities.on.steroids}.
 
 \section{Implemented logic}
 \label{sect.implemented.logic}
@@ -492,8 +486,38 @@ Here $\mathsf{f}$ is a \emph{type-former} which has an associated \emph{arity}--
 If all type-formers within a type are applied to a number of types matching their arity we call the type \emph{well-formed}---that is, arities introduce a trivial or degenerate form of \emph{kinding} for types.
 We will only ever work with well-formed types in Supervisionary.
 We write $tv(\tau)$ for the \emph{set of type-variables} appearing within a type, and write $\tau[\alpha := \tau']$ for the \emph{type substitution} replacing all occurrences of $\alpha$ with $\tau'$ in the type $\tau$.
-From the outset we assume two primitive type-formers built-in to the logic itself and necessary to bootstrap the rest of the logic: $\mathsf{bool}$, the type-former of the Boolean type---and also the type of propositions---with arity $0$, and $- \Rightarrow -$, the type-former of the HOL function space, with arity $2$.
+From the outset we assume two primitive type-formers built-in to the logic itself and necessary to bootstrap the rest of the material: $\mathsf{bool}$, the type-former of the Boolean type and also the type of propositions, with arity $0$, and $- \Rightarrow -$, the type-former of the HOL function space, with arity $2$.
 Note we will abuse syntax and also write $\mathsf{bool}$ for the \emph{type} of Booleans and propositions, and also write $\tau \Rightarrow \tau'$ for the function space type.
+
+\begin{figure}[t]
+\begin{gather*}
+\begin{prooftree}
+\phantom{h}
+\justifies
+x_\tau : \tau
+\end{prooftree}
+\quad\qquad
+\begin{prooftree}
+\phantom{h}
+\justifies
+\mathsf{C}_\tau : \tau
+\end{prooftree}
+\quad\qquad
+\begin{prooftree}
+r : \tau \Rightarrow \tau' \;\;\; s : \tau
+\justifies
+rs : \tau'
+\end{prooftree}
+\quad\qquad
+\begin{prooftree}
+r : \tau'
+\justifies
+\lam{x_\tau}r : \tau \Rightarrow \tau'
+\end{prooftree}
+\end{gather*}
+\caption{The typing relation on terms}
+\label{fig.typing.relation}
+\end{figure}
 
 For each well-formed type $\tau$ we assume a countably infinite set of \emph{variables} and \emph{constant symbols}.
 We use $x_\tau$, $y_\tau$, $z_\tau$, and so on, to range over the variables associated with type $\tau$, and use $\mathsf{C}_\tau$, $\mathsf{D}_\tau$, $\mathsf{E}_\tau$, and so on, to also range over the constants associated with type $\tau$.
@@ -501,9 +525,10 @@ With these, we recursively define \emph{terms} of the explicitly-typed $\lambda$
 \begin{displaymath}
 r, s, t ::= x_\tau \mid \mathsf{C}_\tau \mid rs \mid \lam{x{:}\tau}r
 \end{displaymath}
-Note that there is an ``obvious'' simple-typing relation on terms, which we omit here, though we write $r : \tau$ to assert that term $r$ has type $\tau$ according to this typing relation.
-We call any term with a type \emph{well-typed}, and we will only ever work with well-typed terms in Supervisionary.
-Further, we call a term with type $\mathsf{bool}$ a \emph{formula} and use $\phi$, $\psi$, $\xi$, and so on, to suggestively range over terms that should be understood as being formulae in the rest of the paper.
+Note that there is an ``obvious'' simple-typing relation on terms, which is presented in Figure~\ref{fig.typing.relation}.
+We write $r : \tau$ to assert that a derivation tree rooted at $r : \tau$ and constructed according to the rules in Figure~\ref{fig.typing.relation} exists, or more intuitively, that $r$ has type $\tau$.
+We call any term with a type \emph{well-typed}; we will only ever work with well-typed terms in Supervisionary.
+Also, we call a term with type $\mathsf{bool}$ a \emph{formula} and use $\phi$, $\psi$, $\xi$, and so on, to suggestively range over terms that should be understood as being formulae in the rest of the paper.
 We work with terms identified up-to $\alpha$-equivalence, write $fv(r)$ for the set of \emph{free variables} of the term $r$, write $r[x_\tau := t]$ for the usual \emph{capture-avoiding substitution} on terms, and write $r[\alpha := \tau]$ for the recursive extension of the type substitution action to terms.
 
 Like with type-formers, from the offset we assume a collection of typed constants needed to boostrap the rest of the logic, summarised in the table below:
@@ -535,7 +560,7 @@ We prefer a more explicit treatment closer to a textbook presentation of Natural
 
 Supervisionary's kernel manages a series of \emph{heaps}, or private memories, in addition to other bits of book-keeping data.
 These heaps contain \emph{kernel objects}, of various kinds: type-formers, types, constants, terms, and theorems.
-These follow the progression of the different kinds of HOL object, discussed in Section~\ref{sect.implemented.logic}, and their interdependencies, and are discussed in turn.
+These follow the progression of the different kinds of HOL object and their interdependencies, as introduced in Section~\ref{sect.implemented.logic}.
 
 \begin{figure}
 % Pattern Info
@@ -977,7 +1002,7 @@ Building atop the heap of type-formers is the heap of types.
 This heap is queried and manipulated using another series of system calls.
 Note that the interface for working with types is much more complex than that for type-formers, so is only summarised here.
 
-Recalling the grammar of HOL types, introduced in Section~\ref{sect.implemented.logic}, we note that types are either a type-variable or a \emph{combination} of a type-former applied to a list of types, and all entries within the type heap are therefore tagged indicating whether they are a type-variable or a combination.
+Recalling Section~\ref{sect.implemented.logic}, we note that types are either a type-variable or a \emph{combination} of a type-former applied to a list of types, and all entries within the type heap are therefore tagged indicating whether they are a type-variable or a combination.
 Type-variable entries only contain one datum: the \emph{name} of the type-variable, which we take to be an unsigned 64-bit machine word.
 On the other hand, cells tagged with the combination tag also contain a pointer into the type-former heap, indicating which type-former is being applied, and contain a list of pointers back into the type heap itself, identifying the type arguments of the combination.
 Figure~\ref{fig.type-former.type.heap} shows a schematic diagram of dependencies between cells within the two heaps, wherein we use \texttt{V} to tag type-variables and \texttt{F} to tag combinations.
@@ -1007,8 +1032,8 @@ By querying this, user-space can first allocate sufficient memory within its own
 Obviously, the Supervisionary kernel must be careful in its management of its heaps, and this topic becomes pressing now we have introduced two heaps with dependencies between them.
 In particular, Supervisionary maintains a series of \emph{kernel invariants} which hold immediately out of boot and must be preserved by all system calls.
 One key invariant is the idea that heaps only ever \emph{grow} monotonically, and allocated entries are immutable.
-Once an object is allocated into the heap it cannot be removed or modified in any way, lest we introduce an unsoundness for example, by modifying the $\mathsf{bool}$ type, or the truth constant, $\top$, or something similarly catastrophic.
-Moreover, heaps should always remain ``inductive'', in the sense that their cells do not contain any dangling pointers that do not point-to allocated cells in the same or other heaps.
+Once an object is allocated into the heap it cannot be removed or modified in any way, lest we introduce an unsoundness, for example by modifying the $\mathsf{bool}$ type, or the truth constant, $\top$, or something similarly catastrophic.
+Moreover, heaps should always remain \emph{inductive}, in the sense that their cells do not contain any dangling pointers that do not point-to allocated cells in the same or other heaps.
 Essentially, this latter property forces the various objects under Supervisionary's management to correctly follow the grammar of types and terms introduced in Section~\ref{sect.implemented.logic}, with larger objects being gradually ``built up'' out of smaller ones.
 
 \subsection{The constant and term heap}
@@ -1020,7 +1045,7 @@ The system call interface for constants is similar to that for type-formers, exp
 Another, further heap---the heap of terms---is also used to construct and manipulate terms, with heap cells tagged with whether they represent a variable, constant, application, or lambda-abstraction, in a similar style to the tagging used for cells in the type heap.
 System calls for constructing, testing, and pattern matching on terms are provided, similar to those previously discussed within the context of other heaps.
 Further, new special-purposes system calls, for example \texttt{Term.Type.Infer} allow user-space to infer the type of a registered term, if any, whilst \texttt{Term.Substitute} performs a capture-avoiding substitution on a term.
-Note that handles for terms actually denote $\alpha$-equivalence classes of terms---at present, we use a name-carrying syntax, but could implement this using De Bruijn indices or levels~\cite{Bruijn1972LambdaCN}, leading to a more efficient implementation.\footnote{Naturally, this would come at the continued mental cost of actually having to use, or even think about, De Bruijn indices.}
+Note that handles for terms actually denote $\alpha$-equivalence classes of terms---at present, we use a name-carrying syntax, but could implement this using De Bruijn indices or levels~\cite{Bruijn1972LambdaCN}, leading to a more efficient implementation.
 
 \subsection{The theorem heap}
 
@@ -1052,8 +1077,8 @@ Moreover, we previously mentioned that heaps must continue to grow monotonically
 However, note that this invariant \emph{could} be weakened, somewhat, by ``working backwards'' from the kernel's theorem heap and removing objects in other kernel heaps that are not referenced via a transitive points-to relation.
 Essentially this would represent a form of \emph{mark-and-sweep garbage collection}~\cite{DBLP:books/crc/CRCcompiler2007/SanyalK07} wherein objects in the kernel's theorem heaps are root objects, with other objects deallocated if they are not reachable from these roots.
 Care, however, must be taken to ensure that the primitive kernel objects, pre-provisioned into the heaps at system boot, can never be deallocated, even if currently unreachable.
-Whilst this is possible, this garbage collection process is not implemented in Supervisionary, as sharing compresses the heaps, meaning that there is no pressing need to remove objects from them.
-Moreover, within the context of garbage collection, user-space cannot be sure that a handle generated by the kernel, and previously denoting a registered kernel object, now does not dangle, complicating the Supervisionary programming model.
+Whilst this is possible, this garbage collection process is not at present implemented in Supervisionary, as sharing compresses the heaps, meaning that there is no pressing need to remove objects from them.
+Moreover, within the context of garbage collection, user-space cannot be sure that a handle generated by the kernel, and previously denoting a registered kernel object, is stable and now does not dangle, complicating the Supervisionary programming model.
 
 \subsection{Specifying kernel functions}
 \label{subsect.specifying.kernel.functions}
@@ -1088,7 +1113,6 @@ We also call heaps over natural number arities a \emph{type-former heap}.
 
 Fix a set of kernel states $K$.
 We use $k$, $k'$, $k''$, and so on, to range over kernel states, each of which is a $5$-tuple $\langle F, Ty, C, Tm, Th \rangle$ consisting of a type-former heap, a type heap, a constant heap, a term heap, and a theorem heap respectively.
-We write $F\ k$ to project the type-former heap out of a kernel state $k$, and analogously for other projection functions $Ty$, $C$, $Tm$, and $Th$.
 We extend our notion of disjointness to kernel states, and write $k\ \sharp\ k'$ to assert that all of the respective heaps in kernel states $k$ and $k'$ are disjoint.
 We further abuse notation and write $0$ for the \emph{empty kernel state} consisting of five empty heaps, and $k \oplus k'$ for the ``gluing'' of two kernel states together, wherein each of the respective heaps in $k$ and $k'$ are joined pointwise using $\oplus$.
 Note that, again, $k \oplus k'$ is well-defined whenever $k\ \sharp\ k'$.
@@ -1151,10 +1175,9 @@ Note that these shape predicate invariants formally capture the kernel invariant
 
 \subsection{Programming in user-space}
 
-The system call interface above presents a very low-level, austere interface to user-space code.
-To make programming above Supervisionary less tedious a utility library, similar in function to \texttt{libc}, needs to be provided to user-space in order to raise the level of abstraction above the raw system call interface.
-In Supervisionary, this is provided as \texttt{libsupervisionary}, currently implemented only for the Rust programming language, but could in theory be ported to the C-language, or any other language that can be compiled to Wasm.
-
+The system call interface presents a very low-level, austere interface to user-space code.
+To make programming Supervisionary less tedious, a utility library, similar in function to \texttt{libc}, is provided to user-space in order to raise the level of abstraction above the raw system call interface.
+This is provided as \texttt{libsupervisionary}, currently implemented only for the Rust programming language, but could in theory be ported to the C-language, or any other language that can be compiled to Wasm.
 Note that further layers, built on top of \texttt{libsupervisionary}, can provide pretty-printing and parsing routines for types and terms, automation, proof-state management, and other functions typical of a proof-assistant.
 
 \section{Capabilities on steroids}
@@ -1167,13 +1190,13 @@ As described, Supervisionary is a proof-checking system implemented in an unusua
 
 However, at present, these Wasm programs are limited in the \emph{effects} that they can make on the system---specifically, the only effect that they can actually make, other than heating the CPU, is to construct types, terms, and theorems, in Supervisionary's various heaps, using the series of system calls progressively introduced in Section~\ref{sect.the.kernel.state}.
 Programs executing under Supervisionary are so-far incapable of opening files on the user's machine, communicating over sockets, or querying the system time, because Supervisionary does not provide any system calls to allow a program to perform any of those activities.
-
 However, it could.
-For example, we could implement a system interface that provided all of the system calls needed by ``real'' programs wishing to make some effect on a user's machine.
+
+Specifically, Supervisionary could implement a system interface that provided all of the system calls needed by ``real'' programs wishing to make some effect on a user's machine.
 By doing this, Supervisionary is transformed into a general-purpose virtual machine, akin to the Java Virtual Machine, capable of executing arbitrary programs---calculators, simulations, file search utilities, and so on---albeit with a bizarre set of extra system calls dedicated to theorem proving.
 In short, by extending Supervisionary with system calls for querying and manipulating the system state, Supervisionary is \emph{both} a proof-assistant and a general-purpose virtual machine---though these two facets of the system are kept separate, as two different families of system calls.
-But: what happens if we merge the two?
 
+These two families of system call need not be kept separated, however.
 In particular, prior to allowing a user-space program to open or read a file, Supervisionary could first demand that a (handle to a) theorem is supplied to it as an extra argument to the file-open system call, \texttt{fopen}, for example.
 Interestingly, because Supervisionary executes at a relative level of privilege, and can ``peer in'' to the runtime state of a user-space program, the statement of this desired theorem can be a \emph{function} of the runtime state of the user-space program itself, of the runtime state of the Supervisionary kernel, and also of the various arguments and other details of the system call being invoked.
 This statement---which we will call the \emph{challenge}---can be any arbitrary formula written in HOL, and can be generated dynamically by the kernel, perhaps in accordance with a global \emph{policy} enforced by Supervisionary.
@@ -1204,24 +1227,24 @@ With this, and assuming HOL functions $\mathsf{strbytes}$ and $\mathsf{intbytes}
 \quad\mathsf{cargs}\ c\ 0 = \mathsf{Some}\ (\mathsf{strbytes}\ \text{"foo.txt"}) \longrightarrow \\
 \qquad\mathsf{cargs}\ c\ 1 = \mathsf{Some}\ (\mathsf{intbytes}\ (\eps{i_\mathsf{word\ 64}}3i^2 - 2i - 1 = 0))
 \end{gather*}
-preventing any write to the file \texttt{foo.txt} from being written unless the 64-bit machine word being written is \emph{some} zero of a particular polynomial.
+preventing any write to a file unless the 64-bit machine word being written is \emph{some} zero of a particular polynomial.
 In particular, the policy above demonstrates an important point: Supervisionary's policies can use any aspect of HOL, quantifiers, choice, and all.
 
 Until now, all examples have focussed on the $\mathsf{cstate}$ record which captures information about the invoked system call.
 Other interesting policies can also be written in terms of the runtime state of the Supervisionary kernel itself---especially the case if we extend the kernel with new structures.
-For example, by extending Supervisionary to keep a log of all system calls invoked thus far by a user-space program---for example, exposing this log as a field $\mathsf{wlog}$ in the $\mathsf{wstate}$ record with type $\mathsf{wstate} \Rightarrow \mathsf{nat} \Rightarrow \mathsf{option}\ \mathsf{event}$ describing a log of system events encountered by the kernel thus far---we can then capture \emph{trace properties} of the program being executed.
+For example, by extending Supervisionary to keep a log of all system calls invoked thus far by a user-space program---for example, exposing this log as a field $\mathsf{wlog}$ in the $\mathsf{wstate}$ record with type $\mathsf{wstate} \Rightarrow \mathsf{nat} \Rightarrow \mathsf{option}\ \mathsf{event}$---we can then capture \emph{trace properties} of the program being executed.
 These could include policies expressing the fact that particular system calls must be balanced in some way---for example, exactly one file may be opened with \texttt{fopen} at a time, and opening a second file first requires the program close the other with \texttt{fclose}---to deeper properties, including adherence to some protocol.
 
-Returning back to the subject of quantification, one common security pattern deployed by software is gradual \emph{jailing}, or shedding of capabilities---for example, OpenBSD's \texttt{pledge} system call allows a program to dynamically promise that it will no longer invoke particular classes of system call, gradually dropping capabilities during a self-jailing phase, with the operating system aborting execution of the program if this promise is ever broken.
+Returning back to the subject of quantification, one common security pattern deployed by software is gradual \emph{jailing}, or shedding of capabilities---for example, OpenBSD's \texttt{pledge} system call allows a program to dynamically shed the ability to further invoke particular classes of system call, gradually dropping capabilities during a self-jailing phase.
 Within the context of the discussion above, to offer a similar facility for Supervisionary, we need to allow a program to dynamically \emph{strengthen} the prevailing policy being enforced by Supervisionary.
 Given the prevailing policy $p$ we can allow the user-space program to self-jail by switching to a new policy $q$ if the program can \emph{prove} to Supervisionary that the new policy is more restrictive than the previous one, in the sense that:
 \begin{displaymath}
 \fall{w_{\mathsf{wstate}}}\fall{k_{\mathsf{kstate}}}\fall{c_{\mathsf{cstate}}}q\ w\ k\ c \longrightarrow p\ w\ k\ c
 \end{displaymath}
-That is, if we take the view that Supervisionary's policies identify sets of possible behaviours, then the user-space program must prove to Supervisionary's satisfaction that the set of permissible behaviours that may occur from now on are a subset of the behaviours that Supervisionary was previously happy to accept.
+That is, if we take the view that Supervisionary's policies identify sets of possible system behaviours, then the user-space program must prove to Supervisionary's satisfaction that the set of permissible behaviours that may occur from now on are a subset of the behaviours that Supervisionary was previously happy to accept.
 
-The material in this section has some similarity with an existing idea: \emph{proof-carrying code}.
-In at least one model of proof-carrying code the operating system or virtual machine loader is modified to check proof certificates bundled with binaries for adherence to some security or correctness property, for example memory safety, before the binary is executed.
+The material in this section has some similarity with an existing idea: \emph{proof-carrying code}~\cite{DBLP:reference/crypt/Necula11}.
+In one model of proof-carrying code the operating system or virtual machine loader is modified to check proof certificates bundled with binaries for adherence to some security or correctness property, for example memory safety, before the binary is executed.
 Note, however, that these certificates are constructed \emph{up front}, in a separate step, and merely checked by the operating system loader.
 In contrast, the ideas presented above are more akin to \emph{proof-generating code}, wherein the user-space program and Supervisionary work together to dynamically come to an understanding that the runtime behaviour of the program adheres to a prevailing policy.
 In effect, HOL is used as a \emph{lingua franca} used to communicate demands by, and intent of, the Supervisionary kernel and user-space program, respectively.
@@ -1238,7 +1261,7 @@ With Supervisionary, proof is no longer the domain of special purpose programmin
 
 \subsection{Related work}
 
-The closest related work to Supervisionary is \emph{VeriML}, an ML-like higher-order programming language extended with limited dependent-types that range over terms and theorems of Gordon's HOL~\cite{DBLP:conf/icfp/StampoulisS10}.
+The closest related work to Supervisionary is \emph{VeriML}, an ML-like language extended with limited dependent-types ranging over HOL terms and theorems~\cite{DBLP:conf/icfp/StampoulisS10}.
 Essentially, VeriML ``internalises'' a typical HOL kernel implementation within a higher-order programming language, promoting the abstract type of theorems---typically \emph{defined} within the system metalanguage---into a native type of the language that can be queried and modified with new, dedicated, domain-specific expressions for theorem construction and manipulation.
 
 From the point-of-view of a typical HOL kernel implementation, VeriML essentially ``pushes the kernel down one layer'' in the hierarchy of abstractions, moving the kernel from a library within the language to a first-class programming language feature.
@@ -1252,9 +1275,9 @@ The natural programming language that one obtains from extending these local axi
 Note, however, to make a more ergonomic programming language it would make sense for these expressions to be modified so that they manipulate built-in recursive types of the programming language---corresponding to HOL type-formers, types, constants, terms, and theorems---in a similar fashion to VeriML, rather than make use of Supervisionary's handles and its incremental construction of recursive structures.
 
 In Section~\ref{sect.capabilities.on.steroids} we observed that Supervisionary's handles can be reinterpreted as \emph{capabilities}, in the information security sense of that word.
-Note that capability machines are, at the present time, having a minor renaissance, driven by the success of the CHERI capability extensions for MIPS, Arm AArch64, and RISC-V.
-Capabilities in hardware have a long and storied history---dating at least to the Cambridge CAP machine developed in the 1960s---and capability-based security has also previously been applied to programming languages and software, including systems software like operating systems.
-Whilst contemporary operating systems like seL4 and Google's Fuschia have a security model built around capabilities, perhaps the best well-known historical example of a capability-based operating system was KeyKOS and its many derivatives, including EROS, the Extremely Reliable Operating System.
+Note that capability machines are, at the present time, having a minor renaissance, driven by the success of the CHERI capability extensions for MIPS, Arm AArch64, and RISC-V~\cite{DBLP:conf/sp/NienhuisJBFR0NN20}.
+Capabilities in hardware have a long and storied history---dating at least to the Cambridge CAP machine developed in the 1970s---and capability-based security has also previously been applied to programming languages and software, including systems software like operating systems.
+Whilst contemporary operating systems like seL4~\cite{DBLP:conf/sosp/KleinEHACDEEKNSTW09} and other L4 derivatives have a security model built around capabilities, perhaps the best well-known historical example of a capability-based operating system was KeyKOS~\cite{DBLP:conf/sp/RajunasHBFL86, DBLP:journals/sigops/Hardy85} and its many derivatives, including EROS, the Extremely Reliable Operating System~\cite{DBLP:journals/software/ShapiroH02}.
 However, despite this long history, the Supervisionary conception of capabilities differs markedly from other implementations.
 In particular, hardware-based capability systems like CHERI, are relatively inexpressive, extending traditional pointer types with information on valid memory regions within which they may point, and memory access permissions.
 This is because existing hardware-based capability systems are optimised to prevent spatial and temporal memory safety issues, inherent with widespread use of unsafe systems programming languages like the C-language, and derivatives, and must also provide an easy ``on ramp'' allowing existing software to adopt them.
@@ -1263,7 +1286,7 @@ However, Supervisionary's capabilities are also much more intrusive, and much ha
 Moreover, using a Supervisionary capability to open a file, for example, may require unbounded amounts of reasoning first, in order to address the ``challenge'' posed by Supervisionary.
 This is not the case with other forms of capability, which typically act as generally-passive tokens of authority.
 
-Lastly, Supervisionary, as an implementation of HOL, is closely related to several extant systems in the wider HOL family: Isabelle/HOL, HOL4, HOL Light, Candle, and so on.
+Lastly, Supervisionary, as an implementation of HOL, is closely related to several extant systems in the wider HOL family: Isabelle/HOL, HOL4, HOL Light, Candle~\cite{DBLP:conf/itp/AbrahamssonMKS22}, and so on.
 The kernels of all of these systems implement very similar logics, albeit with minor modification.
 However, unlike the aforementioned systems, Supervisionary does not follow the typical LCF-style of system organisation, nor is it written in an ML-derivative.
 
@@ -1282,17 +1305,15 @@ Indeed, Supervisionary could have been implemented as real, privileged systems s
 As a result, the Supervisionary system call interface is already quite well-suited to an implementation in hardware, perhaps as an extension of an existing instruction set architecture like Arm AArch64 or RISC-V.
 The mechanism through which the Supervisionary kernel isolates itself, via private memories, is rather ``hardware like'', and maps nicely onto existing hardware features, and whilst the present Supervisionary system call interface makes extensive use of ``pointer-like'' handles to refer to kernel objects, on a real hardware implementation these handles could \emph{literally} be pointers into private memories, or similar.
 Moreover, the system call interface itself is also further carefully designed to avoid arbitrarily large recursive structures, difficult for an instruction set architecture to handle, from being passed across the kernel system call boundary.
-
 We could therefore ``push Supervisionary down one layer'' again, into the underlying instruction set implemented by hardware.
-With this, the ideas presented in Section~\ref{sect.capabilities.on.steroids} potentially take on a new light, as the underlying system hardware is now capable of expressing, and enforcing, arbitrarily complex security and correctness properties.
-We leave exploring this to future work.
+With this, the ideas presented in Section~\ref{sect.capabilities.on.steroids} take on a new light, as the system hardware is now capable of expressing, and enforcing, arbitrarily complex security and correctness properties.
 
 \subsubsection*{Transferring theorems between systems}
 
 Assuming that an existing HOL implementation---HOL Light, for example---can be compiled into Wasm, we note that it should be possible to modify this HOL implementation by ``ripping out'' its kernel and replacing it with a shim layer exposing the same interface but calling Supervisionary's system calls to implement kernel functionality.
 From this, one can immediately ``import'' the entire HOL Light library directly into Supervisionary, merely by having the system bootstrap itself, progressively registering new theorems in the kernel's heaps as it executes via the Supervisionary virtual machine and proves results.
 
-However, intriguingly, this approach could also be used to transfer results from one HOL implementation to another by essentially performing the same shim trick with a second system.
+Intriguingly, this approach could also be used to transfer results from one HOL implementation to another by performing the same shim trick with a second system.
 Then, this second system can execute on an instance of the Supervisionary virtual machine \emph{after} its heaps have already been populated by the first system.
 With this, the second HOL implementation can make reference to results populated by the first system, or build on top of them, if desired.
 This method could not only provide a quick way of bootstrapping a library of formalized mathematics for Supervisionary, by essentially ``borrowing'' the library of another implementation, but also provides an alternative to OpenTheory~\cite{DBLP:conf/itp/KumarH12, DBLP:conf/nfm/Hurd11} for transferring results between systems.
@@ -1303,14 +1324,18 @@ We leave investigating this in more detail for future work.
 We have presented Supervisionary, a prototype kernel for an implementation of Gordon's HOL.
 In contrast to most implementations of HOL, Supervisionary is not based on the LCF architectural pattern, but is instead implemented in a style more reminiscent of a typical operating system, making essential use of machine-oriented notions of separation to protect the system kernel from untrusted automation.
 
-Supervisionary is interesting in its own right: it completely dispenses with the typical metalanguage associated with an LCF-style proof-assistant, allowing automation to be written in any programming language capable of respecting the Supervisionary kernel binary interface and calling conventions.
+At present, the prototype Supervisionary kernel---which is open-source, and developed in the open\footnote{\url{https://www.github.com/DominicPM/supervisionary}}---is implemented as a host for the Wasmi interpreter\footnote{\url{https://github.com/paritytech/wasmi}} for Wasm.
+Interpretation means that software executing under Supervisionary executes orders of magnitude slower than natively-compiled code.
+However, the kernel is architected in a layered manner, with all important kernel functionality implemented in a library that is completely independent of the execution engine used, and which is only bound to the execution engine in a thin shim layer sitting between it and the core kernel library.
+As a result, Supervisionary can be ported to more efficient Wasm execution engines, for example the Wasmtime just-in-time compiler\footnote{\url{https://www.wasmtime.dev}}, relatively easily.
+This porting---which has already started---will provide a significant increase in system performance, albeit at the cost of bringing a state-of-the-art just-in-time compiler into the kernel's trusted computing base.
+
+We argue that the design of Supervisionary is interesting in its own right: it completely dispenses with the typical metalanguage associated with an LCF-style proof-assistant, allowing automation to be written in any programming language capable of respecting the Supervisionary kernel binary interface and calling conventions.
 However, perhaps the most interesting aspects of Supervisionary are the consequences of its novel design, and the possibilities for future work.
 These include adopting the Supervisionary kernel interface as the foundation of a hardware implementation of HOL---wherein HOL's inference rules are implemented as machine instructions that modify private memories---and the use of Supervisionary as a general-purpose virtual machine that uses its proof-checking abilities to ``challenge'' user-space programs to explain their adherence to some system-wide security or correctness policy.
+Notably, by moving this proof-checking capability into the operating system, or other privileged system software, or even hardware, this capability becomes shared by \emph{all} user-space software executing within the system, not just software written in dedicated ``verification aware'' programming languages.
 
-At present, the prototype Supervisionary kernel---which is open-source, and developed in the open---is implemented as a host for the Wasmi interpreter for Wasm.
-However, the kernel is architected in a layered manner, with all important kernel functionality implemented in a library that is completely independent of the execution engine used, and which is only bound to the execution engine in a thin shim layer sitting between it and the core kernel library.
-As a result, Supervisionary can be ported to more efficient Wasm execution engines, for example the Wasmtime just-in-time compiler, relatively easily.
-Porting to Wasmtime---which has already started---will provide a significant increase in system performance, albeit at the cost of bringing a state-of-the-art just-in-time compiler into the kernel's trusted computing base.
+\newpage
 
 \bibliography{types-2022-postproceedings.bib}
 
