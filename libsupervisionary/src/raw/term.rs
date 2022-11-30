@@ -253,7 +253,7 @@ extern "C" {
         result_type_length: *mut u64,
     ) -> i32;
     /// Raw ABI binding to the `Term.Substitution` function.
-    fn __term_substitution(
+    fn __term_substitute(
         term_handle: RawHandle,
         domain_base: *const Name,
         domain_length: u64,
@@ -270,7 +270,7 @@ extern "C" {
         result_type_length: *mut u64,
     ) -> i32;
     /// Raw ABI binding to the `Term.Type.Substitution` function.
-    fn __term_type_substitution(
+    fn __term_type_substitute(
         term_handle: RawHandle,
         domain_base: *const Name,
         domain_length: u64,
@@ -1214,7 +1214,7 @@ where
         .unzip();
 
     let status = unsafe {
-        __term_type_substitution(
+        __term_type_substitute(
             *term_handle.as_ref().clone() as u64,
             domain.as_ptr() as *const u64,
             domain.len() as u64,
@@ -1254,7 +1254,7 @@ where
     }
 
     let status = unsafe {
-        __term_substitution(
+        __term_substitute(
             *term_handle.as_ref().clone() as u64,
             domain.as_ptr() as *const u64,
             domain.len() as u64,
@@ -1275,7 +1275,7 @@ where
 
 pub fn term_type_infer<T>(
     term_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Type>, ErrorCode>
 where
     T: AsRef<Handle<tags::Term>>,
 {
@@ -1295,9 +1295,7 @@ where
     }
 }
 
-pub fn term_type_is_proposition<T>(
-    term_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+pub fn term_type_is_proposition<T>(term_handle: T) -> Result<bool, ErrorCode>
 where
     T: AsRef<Handle<tags::Term>>,
 {
@@ -1311,7 +1309,7 @@ where
     };
 
     if status == 0 {
-        Ok(Handle::new(result as usize, PhantomData))
+        Ok(result)
     } else {
         Err(ErrorCode::try_from(status).unwrap())
     }

@@ -1975,6 +1975,66 @@ impl RuntimeState {
         Ok(ftv)
     }
 
+    /// Computes the *size* of a term pointed-to by `handle`, including any
+    /// explicit types that appear within the term.  This is used by user-space
+    /// to allocate buffers needed to hold the size of the free-variables and
+    /// type-variables of a term.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if `handle` does not
+    /// point-to any term in the runtime state's term-table.
+    pub fn term_size<T>(&self, handle: T) -> Result<u64, ErrorCode>
+    where
+        T: Borrow<Handle<tags::Term>>,
+    {
+        info!("Computing size of term with handle: {}.", handle.borrow());
+
+        let term = self.resolve_term_handle(handle)?;
+        let mut result = 0_u64;
+        let mut worklist = vec![term];
+
+        while let Some(next) = worklist.pop() {
+            match next {
+                Term::Variable { name, tau } => {
+                    result += 1 + self.type_size(tau).unwrap_or_else(|_| {
+                        panic!("{}", DANGLING_HANDLE_ERROR)
+                    });
+                }
+                Term::Constant { constant, tau } => {
+                    result += 1 + self.type_size(tau).unwrap_or_else(|_| {
+                        panic!("{}", DANGLING_HANDLE_ERROR)
+                    });
+                }
+                Term::Application { left, right } => {
+                    worklist.push(
+                        self.resolve_term_handle(left).unwrap_or_else(|_| {
+                            panic!("{}", DANGLING_HANDLE_ERROR)
+                        }),
+                    );
+                    worklist.push(
+                        self.resolve_term_handle(right).unwrap_or_else(|_| {
+                            panic!("{}", DANGLING_HANDLE_ERROR)
+                        }),
+                    );
+                    result += 1;
+                }
+                Term::Lambda { name, tau, body } => {
+                    worklist.push(
+                        self.resolve_term_handle(body).unwrap_or_else(|_| {
+                            panic!("{}", DANGLING_HANDLE_ERROR)
+                        }),
+                    );
+                    result += 1 + self.type_size(tau).unwrap_or_else(|_| {
+                        panic!("{}", DANGLING_HANDLE_ERROR)
+                    });
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
     /// Computes the *free variables* of the term pointed-to by the handle
     /// `handle` in the runtime state's term-table.
     ///
@@ -2045,7 +2105,7 @@ impl RuntimeState {
     pub fn term_substitution<T, N, U, V>(
         &mut self,
         handle: T,
-        sigma: Vec<((N, U), V)>,
+        _sigma: Vec<((N, U), V)>,
     ) -> Result<Handle<tags::Term>, ErrorCode>
     where
         T: Into<Handle<tags::Term>>,
