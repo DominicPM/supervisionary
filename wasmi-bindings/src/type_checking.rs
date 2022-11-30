@@ -686,7 +686,17 @@ pub(crate) fn check_term_test_exists_signature(signature: &Signature) -> bool {
     )
 }
 
-/// Checks the signature of the `Term.FV` ABI function.
+/// Checks the signature of the `Term.Size` ABI function.
+#[inline]
+pub(crate) fn check_term_size_signature(signature: &Signature) -> bool {
+    check_signature(
+        signature,
+        &[AbiType::Handle, AbiType::Pointer],
+        &Some(AbiType::ErrorCode),
+    )
+}
+
+/// Checks the signature of the `Term.FreeVariables` ABI function.
 #[inline]
 pub(crate) fn check_term_fv_signature(signature: &Signature) -> bool {
     check_signature(

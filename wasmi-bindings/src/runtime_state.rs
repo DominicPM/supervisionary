@@ -60,7 +60,8 @@ use crate::{
         ABI_TERM_REGISTER_IMPLICATION_NAME, ABI_TERM_REGISTER_LAMBDA_INDEX,
         ABI_TERM_REGISTER_LAMBDA_NAME, ABI_TERM_REGISTER_NEGATION_INDEX,
         ABI_TERM_REGISTER_NEGATION_NAME, ABI_TERM_REGISTER_VARIABLE_INDEX,
-        ABI_TERM_REGISTER_VARIABLE_NAME, ABI_TERM_SPLIT_APPLICATION_INDEX,
+        ABI_TERM_REGISTER_VARIABLE_NAME, ABI_TERM_SIZE_INDEX,
+        ABI_TERM_SIZE_NAME, ABI_TERM_SPLIT_APPLICATION_INDEX,
         ABI_TERM_SPLIT_APPLICATION_NAME, ABI_TERM_SPLIT_CONJUNCTION_INDEX,
         ABI_TERM_SPLIT_CONJUNCTION_NAME, ABI_TERM_SPLIT_CONSTANT_INDEX,
         ABI_TERM_SPLIT_CONSTANT_NAME, ABI_TERM_SPLIT_DISJUNCTION_INDEX,
@@ -250,7 +251,7 @@ impl WasmiRuntimeState {
 
         memory
             .borrow_mut()
-            .set(address.into(), bytes)
+            .set(address, bytes)
             .map_err(|_e| RuntimeTrap::MemoryWriteFailed)?;
 
         Ok(())
@@ -439,7 +440,7 @@ impl WasmiRuntimeState {
 
         let bytes = memory
             .borrow()
-            .get(address.into(), byte_count.into())
+            .get(address, byte_count)
             .map_err(|_e| RuntimeTrap::MemoryReadFailed)?;
 
         Ok(bytes)
@@ -1245,6 +1246,15 @@ impl WasmiRuntimeState {
         self.kernel.borrow().term_test_exists(handle)
     }
 
+    /// Lifting of the `term_size` function.
+    #[inline]
+    fn term_size<T>(&self, handle: T) -> Result<u64, KernelErrorCode>
+    where
+        T: Borrow<Handle<tags::Term>>,
+    {
+        self.kernel.borrow().term_size(handle)
+    }
+
     /// Lifting of the `term_free_variables` function.
     #[inline]
     fn term_free_variables<T>(
@@ -1836,7 +1846,7 @@ impl Externals for WasmiRuntimeState {
                 let result_address = args.nth::<semantic_types::Pointer>(1);
 
                 let arity = match self
-                    .type_former_resolve(&Handle::from(handle as usize))
+                    .type_former_resolve(Handle::from(handle as usize))
                 {
                     None => {
                         return Ok(Some(RuntimeValue::I32(
@@ -1853,7 +1863,7 @@ impl Externals for WasmiRuntimeState {
             ABI_TYPE_FORMER_IS_REGISTERED_INDEX => {
                 let handle = args.nth::<semantic_types::Handle>(0);
                 let result = self
-                    .type_former_is_registered(&Handle::from(handle as usize));
+                    .type_former_is_registered(Handle::from(handle as usize));
 
                 Ok(Some(RuntimeValue::I32(result.into())))
             }
@@ -2780,6 +2790,23 @@ impl Externals for WasmiRuntimeState {
                     }
                 }
             }
+            ABI_TERM_SIZE_INDEX => {
+                let term_handle: Handle<tags::Term> = Handle::from(
+                    args.nth::<semantic_types::Handle>(0) as usize,
+                );
+                let result_ptr = args.nth::<semantic_types::Pointer>(1);
+
+                match self.term_size(term_handle) {
+                    Err(e) => Ok(Some(RuntimeValue::I32(e as i32))),
+                    Ok(result) => {
+                        self.write_u64(result_ptr, result)?;
+
+                        Ok(Some(RuntimeValue::I32(
+                            KernelErrorCode::Success.into(),
+                        )))
+                    }
+                }
+            }
             ABI_TERM_FREE_VARIABLES_INDEX => {
                 let term_handle: Handle<tags::Term> = Handle::from(
                     args.nth::<semantic_types::Handle>(0) as usize,
@@ -2789,9 +2816,9 @@ impl Externals for WasmiRuntimeState {
                 let result_name_len_ptr =
                     args.nth::<semantic_types::Pointer>(2);
                 let result_type_base_ptr =
-                    args.nth::<semantic_types::Pointer>(1);
+                    args.nth::<semantic_types::Pointer>(3);
                 let result_type_len_ptr =
-                    args.nth::<semantic_types::Pointer>(2);
+                    args.nth::<semantic_types::Pointer>(4);
 
                 match self.term_free_variables(term_handle) {
                     Err(e) => Ok(Some(RuntimeValue::I32(e as i32))),
@@ -4429,6 +4456,20 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 Ok(FuncInstance::alloc_host(
                     signature.clone(),
                     ABI_TERM_TEST_EXISTS_INDEX,
+                ))
+            }
+            ABI_TERM_SIZE_NAME => {
+                if !type_checking::check_term_size_signature(signature) {
+                    error!("Signature check failed when checking __term_size.  Signature: {:?}.", signature);
+
+                    return Err(WasmiError::Trap(runtime_trap::host_trap(
+                        RuntimeTrap::SignatureFailure,
+                    )));
+                }
+
+                Ok(FuncInstance::alloc_host(
+                    signature.clone(),
+                    ABI_TERM_SIZE_INDEX,
                 ))
             }
             ABI_TERM_FREE_VARIABLES_NAME => {

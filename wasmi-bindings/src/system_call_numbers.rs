@@ -200,6 +200,9 @@ pub(crate) const ABI_TERM_TEST_FORALL_NAME: &str = "__term_test_forall";
 /// The name of the `Term.Test.Exists` ABI call.
 pub(crate) const ABI_TERM_TEST_EXISTS_NAME: &str = "__term_test_exists";
 
+/// The name of the `Term.Size` ABI call.
+pub(crate) const ABI_TERM_SIZE_NAME: &str = "__term_size";
+
 /// The name of the `Term.FreeVariables` ABI call.
 pub(crate) const ABI_TERM_FREE_VARIABLES_NAME: &str = "__term_free_variables";
 /// The name of the `Term.Substitution` ABI call.
@@ -287,19 +290,22 @@ pub(crate) const ABI_TERM_TEST_FORALL_INDEX: usize = 51;
 /// The host-call number of the `Term.Test.Exists` ABI call.
 pub(crate) const ABI_TERM_TEST_EXISTS_INDEX: usize = 52;
 
+/// The host-call number of the `Term.Size` ABI call.
+pub(crate) const ABI_TERM_SIZE_INDEX: usize = 53;
+
 /// The host-call number of the `Term.FreeVariables` ABI call.
-pub(crate) const ABI_TERM_FREE_VARIABLES_INDEX: usize = 53;
+pub(crate) const ABI_TERM_FREE_VARIABLES_INDEX: usize = 54;
 /// The host-call number of the `Term.Substitute` ABI call.
-pub(crate) const ABI_TERM_SUBSTITUTE_INDEX: usize = 54;
+pub(crate) const ABI_TERM_SUBSTITUTE_INDEX: usize = 55;
 
 /// The host-call number of the `Term.Type.Variables` ABI call.
-pub(crate) const ABI_TERM_TYPE_VARIABLES_INDEX: usize = 55;
+pub(crate) const ABI_TERM_TYPE_VARIABLES_INDEX: usize = 56;
 /// The host-call number of the `Term.Type.Substitute` ABI call.
-pub(crate) const ABI_TERM_TYPE_SUBSTITUTE_INDEX: usize = 56;
+pub(crate) const ABI_TERM_TYPE_SUBSTITUTE_INDEX: usize = 57;
 /// The host-call number of the `Term.Type.Infer` ABI call.
-pub(crate) const ABI_TERM_TYPE_INFER_INDEX: usize = 57;
+pub(crate) const ABI_TERM_TYPE_INFER_INDEX: usize = 58;
 /// The host-call number of the `Term.Type.IsProposition` ABI call.
-pub(crate) const ABI_TERM_TYPE_IS_PROPOSITION_INDEX: usize = 58;
+pub(crate) const ABI_TERM_TYPE_IS_PROPOSITION_INDEX: usize = 59;
 
 /// The name of the `Theorem.IsRegistered` ABI call.
 pub(crate) const ABI_THEOREM_IS_REGISTERED_NAME: &str =
@@ -409,83 +415,83 @@ pub(crate) const ABI_THEOREM_SPLIT_CONCLUSION_NAME: &str =
     "__theorem_split_conclusion";
 
 /// The index of the `Theorem.IsRegistered` ABI call.
-pub(crate) const ABI_THEOREM_IS_REGISTERED_INDEX: usize = 59;
+pub(crate) const ABI_THEOREM_IS_REGISTERED_INDEX: usize = 60;
 
 /// The index of the `Theorem.Register.Assumption` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_ASSUMPTION_INDEX: usize = 60;
+pub(crate) const ABI_THEOREM_REGISTER_ASSUMPTION_INDEX: usize = 61;
 /// The index of the `Theorem.Register.Weaken` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_WEAKEN_INDEX: usize = 61;
+pub(crate) const ABI_THEOREM_REGISTER_WEAKEN_INDEX: usize = 62;
 
 /// The index of the `Theorem.Register.Reflexivity` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_REFLEXIVITY_INDEX: usize = 62;
+pub(crate) const ABI_THEOREM_REGISTER_REFLEXIVITY_INDEX: usize = 63;
 /// The index of the `Theorem.Register.Symmetry` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_SYMMETRY_INDEX: usize = 63;
+pub(crate) const ABI_THEOREM_REGISTER_SYMMETRY_INDEX: usize = 64;
 /// The index of the `Theorem.Register.Transitivity` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_TRANSITIVITY_INDEX: usize = 64;
+pub(crate) const ABI_THEOREM_REGISTER_TRANSITIVITY_INDEX: usize = 65;
 /// The index of the `Theorem.Register.Beta` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_BETA_INDEX: usize = 65;
+pub(crate) const ABI_THEOREM_REGISTER_BETA_INDEX: usize = 66;
 /// The index of the `Theorem.Register.Eta` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_ETA_INDEX: usize = 66;
+pub(crate) const ABI_THEOREM_REGISTER_ETA_INDEX: usize = 67;
 /// The index of the `Theorem.Register.Application` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_APPLICATION_INDEX: usize = 67;
+pub(crate) const ABI_THEOREM_REGISTER_APPLICATION_INDEX: usize = 68;
 /// The index of the `Theorem.Register.Lambda` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_LAMBDA_INDEX: usize = 68;
+pub(crate) const ABI_THEOREM_REGISTER_LAMBDA_INDEX: usize = 69;
 
 /// The index of the `Theorem.Register.Substitute` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_SUBSTITUTE_INDEX: usize = 69;
+pub(crate) const ABI_THEOREM_REGISTER_SUBSTITUTE_INDEX: usize = 70;
 /// The index of the `Theorem.Register.TypeSubstitute` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_TYPE_SUBSTITUTE_INDEX: usize = 70;
+pub(crate) const ABI_THEOREM_REGISTER_TYPE_SUBSTITUTE_INDEX: usize = 71;
 
 /// The index of the `Theorem.Register.TruthIntroduction` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_TRUTH_INTRODUCTION_INDEX: usize = 71;
+pub(crate) const ABI_THEOREM_REGISTER_TRUTH_INTRODUCTION_INDEX: usize = 72;
 /// The index of the `Theorem.Register.FalsityElimination` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_FALSITY_ELIMINATION_INDEX: usize = 72;
+pub(crate) const ABI_THEOREM_REGISTER_FALSITY_ELIMINATION_INDEX: usize = 73;
 
 /// The index of the `Theorem.Register.ConjunctionIntroduction` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_CONJUNCTION_INTRODUCTION_INDEX: usize =
-    73;
+    74;
 /// The index of the `Theorem.Register.ConjunctionLeftElimination` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_CONJUNCTION_LEFT_ELIMINATION_INDEX:
-    usize = 74;
+    usize = 75;
 /// The index of the `Theorem.Register.ConjunctionRightElimination` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_CONJUNCTION_RIGHT_ELIMINATION_INDEX:
-    usize = 75;
+    usize = 76;
 
 /// The index of the `Theorem.Register.DisjunctionElimination` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_DISJUNCTION_ELIMINATION_INDEX: usize = 76;
+pub(crate) const ABI_THEOREM_REGISTER_DISJUNCTION_ELIMINATION_INDEX: usize = 77;
 /// The index of the `Theorem.Register.DisjunctionLeftIntroduction` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_DISJUNCTION_LEFT_INTRODUCTION_INDEX:
-    usize = 77;
+    usize = 78;
 /// The index of the `Theorem.Register.DisjunctionRightIntroduction` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_DISJUNCTION_RIGHT_INTRODUCTION_INDEX:
-    usize = 78;
+    usize = 79;
 
 /// The index of the `Theorem.Register.ImplicationIntroduction` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_IMPLICATION_INTRODUCTION_INDEX: usize =
-    79;
+    80;
 /// The index of the `Theorem.Register.ImplicationElimination` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_IMPLICATION_ELIMINATION_INDEX: usize = 80;
+pub(crate) const ABI_THEOREM_REGISTER_IMPLICATION_ELIMINATION_INDEX: usize = 81;
 
 /// The index of the `Theorem.Register.IffIntroduction` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_IFF_INTRODUCTION_INDEX: usize = 81;
+pub(crate) const ABI_THEOREM_REGISTER_IFF_INTRODUCTION_INDEX: usize = 82;
 /// The index of the `Theorem.Register.IffLeftElimination` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_IFF_LEFT_ELIMINATION_INDEX: usize = 82;
+pub(crate) const ABI_THEOREM_REGISTER_IFF_LEFT_ELIMINATION_INDEX: usize = 83;
 
 /// The index of the `Theorem.Register.NegationIntroduction` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_NEGATION_INTRODUCTION_INDEX: usize = 83;
+pub(crate) const ABI_THEOREM_REGISTER_NEGATION_INTRODUCTION_INDEX: usize = 84;
 /// The index of the `Theorem.Register.NegationElimination` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_NEGATION_ELIMINATION_INDEX: usize = 84;
+pub(crate) const ABI_THEOREM_REGISTER_NEGATION_ELIMINATION_INDEX: usize = 85;
 
 /// The index of the `Theorem.Register.ForallIntroduction` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_FORALL_INTRODUCTION_INDEX: usize = 85;
+pub(crate) const ABI_THEOREM_REGISTER_FORALL_INTRODUCTION_INDEX: usize = 86;
 /// The index of the `Theorem.Register.ForallElimination` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_FORALL_ELIMINATION_INDEX: usize = 86;
+pub(crate) const ABI_THEOREM_REGISTER_FORALL_ELIMINATION_INDEX: usize = 87;
 /// The index of the `Theorem.Register.ExistsIntroduction` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_EXISTS_INTRODUCTION_INDEX: usize = 87;
+pub(crate) const ABI_THEOREM_REGISTER_EXISTS_INTRODUCTION_INDEX: usize = 88;
 /// The index of the `Theorem.Register.ExistsElimination` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_EXISTS_ELIMINATION_INDEX: usize = 88;
+pub(crate) const ABI_THEOREM_REGISTER_EXISTS_ELIMINATION_INDEX: usize = 89;
 
 /// The index of the `Theorem.Split.Hypotheses` ABI call.
-pub(crate) const ABI_THEOREM_SPLIT_HYPOTHESES_INDEX: usize = 89;
+pub(crate) const ABI_THEOREM_SPLIT_HYPOTHESES_INDEX: usize = 90;
 /// The index of the `Theorem.Split.Conclusion` ABI call.
-pub(crate) const ABI_THEOREM_SPLIT_CONCLUSION_INDEX: usize = 90;
+pub(crate) const ABI_THEOREM_SPLIT_CONCLUSION_INDEX: usize = 91;
