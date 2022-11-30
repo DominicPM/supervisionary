@@ -253,7 +253,7 @@ extern "C" {
         result_type_length: *mut u64,
     ) -> i32;
     /// Raw ABI binding to the `Term.Substitution` function.
-    fn __term_substitution(
+    fn __term_substitute(
         term_handle: RawHandle,
         domain_base: *const Name,
         domain_length: u64,
@@ -270,7 +270,7 @@ extern "C" {
         result_type_length: *mut u64,
     ) -> i32;
     /// Raw ABI binding to the `Term.Type.Substitution` function.
-    fn __term_type_substitution(
+    fn __term_type_substitute(
         term_handle: RawHandle,
         domain_base: *const Name,
         domain_length: u64,
@@ -1214,7 +1214,7 @@ where
         .unzip();
 
     let status = unsafe {
-        __term_type_substitution(
+        __term_type_substitute(
             *term_handle.as_ref().clone() as u64,
             domain.as_ptr() as *const u64,
             domain.len() as u64,
@@ -1254,7 +1254,7 @@ where
     }
 
     let status = unsafe {
-        __term_substitution(
+        __term_substitute(
             *term_handle.as_ref().clone() as u64,
             domain.as_ptr() as *const u64,
             domain.len() as u64,
