@@ -1275,7 +1275,7 @@ where
 
 pub fn term_type_infer<T>(
     term_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Type>, ErrorCode>
 where
     T: AsRef<Handle<tags::Term>>,
 {
@@ -1295,9 +1295,7 @@ where
     }
 }
 
-pub fn term_type_is_proposition<T>(
-    term_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+pub fn term_type_is_proposition<T>(term_handle: T) -> Result<bool, ErrorCode>
 where
     T: AsRef<Handle<tags::Term>>,
 {
@@ -1311,7 +1309,7 @@ where
     };
 
     if status == 0 {
-        Ok(Handle::new(result as usize, PhantomData))
+        Ok(result)
     } else {
         Err(ErrorCode::try_from(status).unwrap())
     }
