@@ -4504,7 +4504,7 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_term_type_variables_signature(
                     signature,
                 ) {
-                    error!("Signature check failed when checking __term_type_variables.  Signature: {:?}.", signature);
+                    error!("Signature check failed when checking __term_free_type_variables.  Signature: {:?}.", signature);
 
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,

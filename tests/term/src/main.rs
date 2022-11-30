@@ -31,6 +31,7 @@ use libsupervisionary::raw::{
     },
     term::*,
 };
+use std::collections::HashSet;
 
 fn main() {
     assert!(term_is_registered(PREALLOCATED_HANDLE_TERM_CONJUNCTION));
@@ -147,4 +148,78 @@ fn main() {
     assert_eq!(term_size(PREALLOCATED_HANDLE_TERM_IMPLICATION), Ok(6usize));
     assert_eq!(term_size(PREALLOCATED_HANDLE_TERM_NEGATION), Ok(4usize));
     assert_eq!(term_size(PREALLOCATED_HANDLE_TERM_TRUE), Ok(2usize));
+
+    assert_eq!(
+        term_free_variables(PREALLOCATED_HANDLE_TERM_CONJUNCTION),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_variables(PREALLOCATED_HANDLE_TERM_DISJUNCTION),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_variables(PREALLOCATED_HANDLE_TERM_EQUALITY),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_variables(PREALLOCATED_HANDLE_TERM_EXISTS),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_variables(PREALLOCATED_HANDLE_TERM_FALSE),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_variables(PREALLOCATED_HANDLE_TERM_FORALL),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_variables(PREALLOCATED_HANDLE_TERM_IMPLICATION),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_variables(PREALLOCATED_HANDLE_TERM_NEGATION),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_variables(PREALLOCATED_HANDLE_TERM_TRUE),
+        Ok(HashSet::new())
+    );
+
+    assert_eq!(
+        term_free_type_variables(PREALLOCATED_HANDLE_TERM_CONJUNCTION),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_type_variables(PREALLOCATED_HANDLE_TERM_DISJUNCTION),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_type_variables(PREALLOCATED_HANDLE_TERM_EQUALITY),
+        Ok(HashSet::from([0]))
+    );
+    assert_eq!(
+        term_free_type_variables(PREALLOCATED_HANDLE_TERM_EXISTS),
+        Ok(HashSet::from([0]))
+    );
+    assert_eq!(
+        term_free_type_variables(PREALLOCATED_HANDLE_TERM_FALSE),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_type_variables(PREALLOCATED_HANDLE_TERM_FORALL),
+        Ok(HashSet::from([0]))
+    );
+    assert_eq!(
+        term_free_type_variables(PREALLOCATED_HANDLE_TERM_IMPLICATION),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_type_variables(PREALLOCATED_HANDLE_TERM_NEGATION),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
+        term_free_type_variables(PREALLOCATED_HANDLE_TERM_TRUE),
+        Ok(HashSet::new())
+    );
 }

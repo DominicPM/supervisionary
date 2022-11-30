@@ -704,9 +704,9 @@ pub(crate) fn check_term_fv_signature(signature: &Signature) -> bool {
         &[
             AbiType::Handle,
             AbiType::Pointer,
-            AbiType::Size,
             AbiType::Pointer,
-            AbiType::Size,
+            AbiType::Pointer,
+            AbiType::Pointer,
         ],
         &Some(AbiType::ErrorCode),
     )
@@ -738,7 +738,7 @@ pub(crate) fn check_term_type_variables_signature(
 ) -> bool {
     check_signature(
         signature,
-        &[AbiType::Handle, AbiType::Pointer, AbiType::Size],
+        &[AbiType::Handle, AbiType::Pointer, AbiType::Pointer],
         &Some(AbiType::ErrorCode),
     )
 }

@@ -209,7 +209,8 @@ pub(crate) const ABI_TERM_FREE_VARIABLES_NAME: &str = "__term_free_variables";
 pub(crate) const ABI_TERM_SUBSTITUTE_NAME: &str = "__term_substitute";
 
 /// The name of the `Term.Type.Variables` ABI call.
-pub(crate) const ABI_TERM_TYPE_VARIABLES_NAME: &str = "__term_type_variables";
+pub(crate) const ABI_TERM_TYPE_VARIABLES_NAME: &str =
+    "__term_free_type_variables";
 /// The name of the `Term.Type.Substitution` ABI call.
 pub(crate) const ABI_TERM_TYPE_SUBSTITUTE_NAME: &str = "__term_type_substitute";
 /// The name of the `Term.Type.Infer` ABI call.
