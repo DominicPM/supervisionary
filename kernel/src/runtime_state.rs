@@ -60,7 +60,7 @@ use crate::{
         DANGLING_HANDLE_ERROR, HANDLE_EXHAUST_ERROR,
         PRIMITIVE_CONSTRUCTION_ERROR,
     },
-    name::Name,
+    name::{fresh, Name},
     term::{
         Term, TERM_CONJUNCTION_CONSTANT, TERM_DISJUNCTION_CONSTANT,
         TERM_EQUALITY_CONSTANT, TERM_EXISTS_CONSTANT, TERM_FALSE_CONSTANT,
@@ -140,7 +140,7 @@ impl RuntimeState {
 
         info!("Generating fresh handle: {}.", next);
 
-        return Handle::from(next);
+        Handle::from(next)
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -289,8 +289,7 @@ impl RuntimeState {
     {
         info!(
             "Registering type-former {} applied to arguments {:?}.",
-            former.clone(),
-            arguments.clone()
+            former, arguments
         );
 
         let former = former.into();
@@ -737,7 +736,7 @@ impl RuntimeState {
     fn admit_term(&mut self, trm: Term) -> Handle<tags::Term> {
         for (handle, registered) in self.terms.clone().iter() {
             if self
-                .is_alpha_equivalent_inner(&trm, &registered)
+                .is_alpha_equivalent_inner(&trm, registered)
                 .expect(DANGLING_HANDLE_ERROR)
             {
                 return handle.clone();
@@ -1996,12 +1995,12 @@ impl RuntimeState {
 
         while let Some(next) = worklist.pop() {
             match next {
-                Term::Variable { name, tau } => {
+                Term::Variable { name: _, tau } => {
                     result += 1 + self.type_size(tau).unwrap_or_else(|_| {
                         panic!("{}", DANGLING_HANDLE_ERROR)
                     });
                 }
-                Term::Constant { constant, tau } => {
+                Term::Constant { constant: _, tau } => {
                     result += 1 + self.type_size(tau).unwrap_or_else(|_| {
                         panic!("{}", DANGLING_HANDLE_ERROR)
                     });
@@ -2019,7 +2018,7 @@ impl RuntimeState {
                     );
                     result += 1;
                 }
-                Term::Lambda { name, tau, body } => {
+                Term::Lambda { name: _, tau, body } => {
                     worklist.push(
                         self.resolve_term_handle(body).unwrap_or_else(|_| {
                             panic!("{}", DANGLING_HANDLE_ERROR)
@@ -2090,6 +2089,103 @@ impl RuntimeState {
     }
 
     /// Assuming `handle` points-to a term `r` in the kernel's term-table, and
+    /// `domain` represents a name, `x`, `_type` points-to a type `τ` in the
+    /// kernel's type-table, and range points-to a term `t` in the kernel's
+    /// term-table, computes the singleton capture-avoiding substitution action
+    /// on the term, `r[x:τ := t]`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTypeRegistered)` if `_type` does not point
+    /// to a registered type in the kernel's type-table.
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTermRegistered)` if either `domain` or
+    /// `range` do not point-to registered terms in the kernel's term-table.
+    fn term_substitution_single<T, N, U, V>(
+        &mut self,
+        handle: T,
+        domain: N,
+        _type: U,
+        range: V,
+    ) -> Result<Handle<tags::Term>, ErrorCode>
+    where
+        T: Into<Handle<tags::Term>>,
+        N: Into<Name> + Clone,
+        U: Into<Handle<tags::Type>> + Clone,
+        V: Into<Handle<tags::Term>> + Clone,
+    {
+        let handle = handle.into();
+        let domain = domain.into();
+        let _type = _type.into();
+        let range = range.into();
+
+        info!(
+            "Substituting {}:{} for {} in {}.",
+            domain, _type, range, handle
+        );
+
+        let trm = self.resolve_term_handle(&handle)?.clone();
+
+        match trm {
+            Term::Constant {
+                constant: _,
+                tau: _,
+            } => Ok(handle),
+            Term::Variable { name, tau } => {
+                if name == domain && tau == _type {
+                    Ok(range)
+                } else {
+                    Ok(handle)
+                }
+            }
+            Term::Application { left, right } => {
+                let left = self
+                    .term_substitution_single(
+                        left,
+                        domain,
+                        _type.clone(),
+                        range.clone(),
+                    )
+                    .expect(DANGLING_HANDLE_ERROR);
+                let left = self
+                    .term_substitution_single(left, domain, _type, range)
+                    .expect(DANGLING_HANDLE_ERROR);
+
+                self.term_register_application(left, right)
+            }
+            Term::Lambda { name, tau, body } => {
+                if name == domain && tau == _type {
+                    let mut fv: Vec<_> = self
+                        .term_free_variables(body.clone())
+                        .expect(DANGLING_HANDLE_ERROR)
+                        .iter()
+                        .map(|x| *x.0)
+                        .collect();
+
+                    fv.push(name);
+
+                    let f = fresh(fv.into_iter());
+
+                    let body =
+                        self.swap(body, f, name).expect(DANGLING_HANDLE_ERROR);
+
+                    let body = self
+                        .term_substitution_single(body, domain, _type, range)
+                        .expect(DANGLING_HANDLE_ERROR);
+
+                    self.term_register_lambda(f, tau, body)
+                } else {
+                    let body = self
+                        .term_substitution_single(body, domain, _type, range)
+                        .expect(DANGLING_HANDLE_ERROR);
+
+                    self.term_register_lambda(name, tau, body)
+                }
+            }
+        }
+    }
+
+    /// Assuming `handle` points-to a term `r` in the kernel's term-table, and
     /// `sigma` represents a substitution `σ` consisting of handles
     /// pointing-to types and terms in the kernel's type-table and term-table,
     /// respectively, computes the pointwise capture-avoiding substitution
@@ -2105,7 +2201,7 @@ impl RuntimeState {
     pub fn term_substitution<T, N, U, V>(
         &mut self,
         handle: T,
-        _sigma: Vec<((N, U), V)>,
+        sigma: Vec<((N, U), V)>,
     ) -> Result<Handle<tags::Term>, ErrorCode>
     where
         T: Into<Handle<tags::Term>>,
@@ -2113,16 +2209,18 @@ impl RuntimeState {
         U: Into<Handle<tags::Type>> + Clone,
         V: Into<Handle<tags::Term>> + Clone,
     {
-        let trm = self.resolve_term_handle(handle.into())?;
+        let mut handle = handle.into();
 
-        let result = match trm {
-            Term::Constant { constant, tau } => unimplemented!(),
-            Term::Variable { name, tau } => unimplemented!(),
-            Term::Application { left, right } => unimplemented!(),
-            Term::Lambda { name, tau, body } => unimplemented!(),
-        };
+        for ((name, tau), range) in sigma.iter() {
+            handle = self.term_substitution_single(
+                handle,
+                name.clone(),
+                tau.clone(),
+                range.clone(),
+            )?;
+        }
 
-        Ok(result)
+        Ok(handle)
     }
 
     /// Assuming `handle` points-to a term `r` in the kernel's term-table, and
@@ -2149,7 +2247,7 @@ impl RuntimeState {
         let result = match trm {
             Term::Constant { constant, tau: _ } => {
                 /* NB: this can fail if any of the handles in `sigma` dangle. */
-                self.term_register_constant(constant.clone(), sigma)?
+                self.term_register_constant(constant, sigma)?
             }
             Term::Variable { name, tau } => {
                 let tau = self.type_substitute(tau, sigma)?;
@@ -2158,10 +2256,8 @@ impl RuntimeState {
                     .expect(DANGLING_HANDLE_ERROR)
             }
             Term::Application { left, right } => {
-                let left =
-                    self.term_type_substitute(left.clone(), sigma.clone())?;
-                let right =
-                    self.term_type_substitute(right.clone(), sigma.clone())?;
+                let left = self.term_type_substitute(left, sigma.clone())?;
+                let right = self.term_type_substitute(right, sigma)?;
                 /* NB: shouldn't fail as nothing can dangle here and the types
                  * should match, as type-substitution preserves typability.
                  */
@@ -2169,10 +2265,10 @@ impl RuntimeState {
                     .expect(DANGLING_HANDLE_ERROR)
             }
             Term::Lambda { name, tau, body } => {
-                let tau = self.type_substitute(tau.clone(), sigma.clone())?;
-                let body = self.term_type_substitute(body.clone(), sigma)?;
+                let tau = self.type_substitute(tau, sigma.clone())?;
+                let body = self.term_type_substitute(body, sigma)?;
                 /* NB: shouldn't fail as nothing can dangle here. */
-                self.term_register_lambda(name.clone(), tau, body)
+                self.term_register_lambda(name, tau, body)
                     .expect(DANGLING_HANDLE_ERROR)
             }
         };
@@ -2209,8 +2305,8 @@ impl RuntimeState {
         let trm = trm.clone();
 
         match trm {
-            Term::Variable { tau: _type, .. } => Ok(_type.clone()),
-            Term::Constant { tau: _type, .. } => Ok(_type.clone()),
+            Term::Variable { tau: _type, .. } => Ok(_type),
+            Term::Constant { tau: _type, .. } => Ok(_type),
             Term::Application { left, right } => {
                 let ltau = self.term_type_infer(&left)?;
                 let rtau = self.term_type_infer(&right)?;
@@ -2290,14 +2386,14 @@ impl RuntimeState {
         match trm {
             Term::Variable { name, tau: _type } => {
                 if name == a.clone().into() {
-                    Ok(self.admit_term(Term::variable(b, _type.clone())))
+                    Ok(self.admit_term(Term::variable(b, _type)))
                 } else if name == b.into() {
-                    Ok(self.admit_term(Term::variable(a, _type.clone())))
+                    Ok(self.admit_term(Term::variable(a, _type)))
                 } else {
                     Ok(handle.borrow().clone())
                 }
             }
-            Term::Constant { .. } => Ok(handle.clone().borrow().clone()),
+            Term::Constant { .. } => Ok(handle.borrow().clone()),
             Term::Application { left, right } => {
                 let left = self
                     .swap(&left, a.clone(), b.clone())
@@ -2317,11 +2413,11 @@ impl RuntimeState {
                     .swap(&body, a.clone(), b.clone())
                     .unwrap_or_else(|_e| panic!("{}", DANGLING_HANDLE_ERROR));
                 if name == a.clone().into() {
-                    Ok(self.admit_term(Term::lambda(b, _type.clone(), body)))
+                    Ok(self.admit_term(Term::lambda(b, _type, body)))
                 } else if name == b.into() {
-                    Ok(self.admit_term(Term::lambda(a, _type.clone(), body)))
+                    Ok(self.admit_term(Term::lambda(a, _type, body)))
                 } else {
-                    Ok(self.admit_term(Term::lambda(name, _type.clone(), body)))
+                    Ok(self.admit_term(Term::lambda(name, _type, body)))
                 }
             }
         }
@@ -2393,9 +2489,8 @@ impl RuntimeState {
                 {
                     Ok(false)
                 } else {
-                    let body1 = self
-                        .swap(body1, name0.clone(), name1.clone())
-                        .unwrap_or_else(|_e| {
+                    let body1 =
+                        self.swap(body1, *name0, *name1).unwrap_or_else(|_e| {
                             panic!("{}", DANGLING_HANDLE_ERROR)
                         });
                     let body =
@@ -2538,9 +2633,7 @@ impl RuntimeState {
             .resolve_theorem_handle(handle)
             .ok_or(ErrorCode::NoSuchTheoremRegistered)?
             .premisses()
-            .iter()
-            .cloned()
-            .collect())
+            .to_vec())
     }
 
     /// Registers a new theorem object, `{ɸ} ⊢ ɸ` in the kernel's theorem-table
@@ -2872,8 +2965,6 @@ impl RuntimeState {
         let (left, right) = self.term_split_equality(thm.conclusion())?;
 
         // NB: satisfy the borrow checker.
-        let name = name.clone();
-        let tau = tau.clone();
         let left = left.clone();
         let right = right.clone();
 
@@ -2882,10 +2973,10 @@ impl RuntimeState {
         // that everything is well-typed, and that both side of the equality
         // have the same type.
         let lhandle = self
-            .term_register_lambda(name.clone(), tau.clone(), left.clone())
+            .term_register_lambda(name.clone(), tau.clone(), left)
             .expect(PRIMITIVE_CONSTRUCTION_ERROR);
         let rhandle = self
-            .term_register_lambda(name, tau, right.clone())
+            .term_register_lambda(name, tau, right)
             .expect(PRIMITIVE_CONSTRUCTION_ERROR);
         let conclusion = self
             .term_register_equality(lhandle, rhandle)
@@ -2925,7 +3016,6 @@ impl RuntimeState {
 
         // NB: satisfy the borrow checker.
         let body = body.clone();
-        let name = name.clone();
         let _type = _type.clone();
         let rhs = rhs.clone();
 
@@ -2934,7 +3024,7 @@ impl RuntimeState {
         // of HOL asserts that the construction of the equality, below, is
         // well-typed.
         let subst = self
-            .term_substitution(body, vec![((name, _type), rhs)])
+            .term_substitution(body, vec![((*name, _type), rhs)])
             .expect(DANGLING_HANDLE_ERROR);
         let conclusion = self
             .term_register_equality(application, subst)
@@ -3869,12 +3959,11 @@ impl RuntimeState {
             // NB: satisfy the borrow checker.
             let body = body.clone();
             let tau = tau.clone();
-            let name = name.clone();
 
             // NB: this is safe as we know everything should exist, and have the
             // correct type, by this point.
             let conclusion = self
-                .term_substitution(body, vec![((name, tau), trm)])
+                .term_substitution(body, vec![((*name, tau), trm)])
                 .expect(PRIMITIVE_CONSTRUCTION_ERROR);
 
             Ok(self.admit_theorem(Theorem::new(
@@ -3882,7 +3971,7 @@ impl RuntimeState {
                 conclusion,
             )))
         } else {
-            return Err(ErrorCode::DomainTypeMismatch);
+            Err(ErrorCode::DomainTypeMismatch)
         }
     }
 
@@ -3994,7 +4083,7 @@ impl RuntimeState {
 
         /* 2. Add the new constant, giving it the type inferred previously. */
         let cnst_handle = self.issue_handle();
-        self.constants.insert(cnst_handle.clone(), tau.clone());
+        self.constants.insert(cnst_handle.clone(), tau);
 
         let empty: Vec<(Name, Handle<tags::Type>)> = Vec::new();
 
@@ -4005,7 +4094,7 @@ impl RuntimeState {
 
         /* 4. Construct the definitional theorem. */
         let stmt = self
-            .term_register_equality(cnst.clone(), defn.clone())
+            .term_register_equality(cnst.clone(), defn)
             .expect(PRIMITIVE_CONSTRUCTION_ERROR);
 
         /* 5. Register the definitional theorem. */
@@ -4466,11 +4555,7 @@ mod test {
             .term_register_variable(1_u64, PREALLOCATED_HANDLE_TYPE_PROP)
             .unwrap();
         let l1 = state
-            .term_register_lambda(
-                1_u64,
-                PREALLOCATED_HANDLE_TYPE_PROP,
-                v1.clone(),
-            )
+            .term_register_lambda(1_u64, PREALLOCATED_HANDLE_TYPE_PROP, v1)
             .unwrap();
         let c1 = state.term_register_application(l1, v0).unwrap();
 
