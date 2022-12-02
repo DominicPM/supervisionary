@@ -40,11 +40,11 @@ pub type Name = u64;
 /// Fresh name generation, for e.g. implementing the capture-avoiding
 /// substitution action.  Finds a name that is not contained in the `avoid` set
 /// of names.
-fn fresh<T>(mut avoid: T) -> Name
+pub fn fresh<T>(mut avoid: T) -> Name
 where
     T: Iterator<Item = Name>,
 {
-    let mut counter = 0;
+    let mut counter = 0u64;
 
     loop {
         if avoid.any(|x| x == counter) {

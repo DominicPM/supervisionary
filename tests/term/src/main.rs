@@ -368,4 +368,95 @@ fn main() {
         ),
         Ok(PREALLOCATED_HANDLE_TERM_TRUE)
     );
+
+    assert_eq!(
+        term_substitute(
+            PREALLOCATED_HANDLE_TERM_CONJUNCTION,
+            vec![(
+                (0u32, PREALLOCATED_HANDLE_TYPE_PROP),
+                PREALLOCATED_HANDLE_TERM_CONJUNCTION
+            )]
+        ),
+        Ok(PREALLOCATED_HANDLE_TERM_CONJUNCTION)
+    );
+    assert_eq!(
+        term_substitute(
+            PREALLOCATED_HANDLE_TERM_DISJUNCTION,
+            vec![(
+                (0u32, PREALLOCATED_HANDLE_TYPE_PROP),
+                PREALLOCATED_HANDLE_TERM_CONJUNCTION
+            )]
+        ),
+        Ok(PREALLOCATED_HANDLE_TERM_DISJUNCTION)
+    );
+    assert_eq!(
+        term_substitute(
+            PREALLOCATED_HANDLE_TERM_EQUALITY,
+            vec![(
+                (0u32, PREALLOCATED_HANDLE_TYPE_PROP),
+                PREALLOCATED_HANDLE_TERM_CONJUNCTION
+            )]
+        ),
+        Ok(PREALLOCATED_HANDLE_TERM_EQUALITY)
+    );
+    assert_eq!(
+        term_substitute(
+            PREALLOCATED_HANDLE_TERM_EXISTS,
+            vec![(
+                (0u32, PREALLOCATED_HANDLE_TYPE_PROP),
+                PREALLOCATED_HANDLE_TERM_CONJUNCTION
+            )]
+        ),
+        Ok(PREALLOCATED_HANDLE_TERM_EXISTS)
+    );
+    assert_eq!(
+        term_substitute(
+            PREALLOCATED_HANDLE_TERM_FALSE,
+            vec![(
+                (0u32, PREALLOCATED_HANDLE_TYPE_PROP),
+                PREALLOCATED_HANDLE_TERM_CONJUNCTION
+            )]
+        ),
+        Ok(PREALLOCATED_HANDLE_TERM_FALSE)
+    );
+    assert_eq!(
+        term_substitute(
+            PREALLOCATED_HANDLE_TERM_FORALL,
+            vec![(
+                (0u32, PREALLOCATED_HANDLE_TYPE_PROP),
+                PREALLOCATED_HANDLE_TERM_CONJUNCTION
+            )]
+        ),
+        Ok(PREALLOCATED_HANDLE_TERM_FORALL)
+    );
+    assert_eq!(
+        term_substitute(
+            PREALLOCATED_HANDLE_TERM_IMPLICATION,
+            vec![(
+                (0u32, PREALLOCATED_HANDLE_TYPE_PROP),
+                PREALLOCATED_HANDLE_TERM_CONJUNCTION
+            )]
+        ),
+        Ok(PREALLOCATED_HANDLE_TERM_IMPLICATION)
+    );
+    assert_eq!(
+        term_substitute(
+            PREALLOCATED_HANDLE_TERM_NEGATION,
+            vec![(
+                (0u32, PREALLOCATED_HANDLE_TYPE_PROP),
+                PREALLOCATED_HANDLE_TERM_CONJUNCTION
+            )]
+        ),
+        Ok(PREALLOCATED_HANDLE_TERM_NEGATION)
+    );
+    assert_eq!(
+        term_substitute(
+            PREALLOCATED_HANDLE_TERM_TRUE,
+            vec![(
+                (0u32, PREALLOCATED_HANDLE_TYPE_PROP),
+                PREALLOCATED_HANDLE_TERM_CONJUNCTION
+            )]
+        ),
+        Ok(PREALLOCATED_HANDLE_TERM_TRUE)
+    );
 }
