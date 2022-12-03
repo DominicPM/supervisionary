@@ -46,6 +46,8 @@ use crate::{
         ABI_CONSTANT_IS_REGISTERED_INDEX, ABI_CONSTANT_IS_REGISTERED_NAME,
         ABI_CONSTANT_REGISTER_INDEX, ABI_CONSTANT_REGISTER_NAME,
         ABI_CONSTANT_RESOLVE_INDEX, ABI_CONSTANT_RESOLVE_NAME,
+        ABI_SYSTEM_IO_WRITE_ERROR_INDEX, ABI_SYSTEM_IO_WRITE_ERROR_NAME,
+        ABI_SYSTEM_IO_WRITE_INDEX, ABI_SYSTEM_IO_WRITE_NAME,
         ABI_TERM_FREE_VARIABLES_INDEX, ABI_TERM_FREE_VARIABLES_NAME,
         ABI_TERM_IS_REGISTERED_INDEX, ABI_TERM_IS_REGISTERED_NAME,
         ABI_TERM_REGISTER_APPLICATION_INDEX,
@@ -165,10 +167,7 @@ use crate::{
     system_interface_types::semantic_types,
     type_checking,
 };
-
-////////////////////////////////////////////////////////////////////////////////
-// Errors and traps.
-////////////////////////////////////////////////////////////////////////////////
+use system_interface::SystemInterface;
 
 ////////////////////////////////////////////////////////////////////////////////
 // The Wasmi runtime state.
@@ -178,31 +177,30 @@ use crate::{
 /// runtime state, adding a reference to the guest WASM program's memory module,
 /// to enable host functions to read-from and write-to the memory module
 /// directly.
-#[derive(Debug)]
 pub struct WasmiRuntimeState {
     /// The kernel's runtime state.
     kernel: RefCell<KernelRuntimeState>,
     /// The memory instance of the executing WASM guest program.
     memory: Option<RefCell<MemoryRef>>,
-}
-
-impl Default for WasmiRuntimeState {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            kernel: RefCell::new(Default::default()),
-            memory: None,
-        }
-    }
+    /// Access to the system.
+    system_interface: Box<dyn SystemInterface>,
 }
 
 impl WasmiRuntimeState {
     /// Constructs a new instance of a `WasmiRuntimeState` with the kernel state
     /// initialised to its correct initial state, and the reference to the Wasm
-    /// guest's memory set to `None`.
+    /// guest's memory set to `None`.  Sets the system interface to the provided
+    /// interface type.
     #[inline]
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new<S>(system_interface: S) -> Self
+    where
+        S: SystemInterface + 'static,
+    {
+        Self {
+            kernel: RefCell::new(Default::default()),
+            memory: None,
+            system_interface: Box::new(system_interface),
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -3619,6 +3617,28 @@ impl Externals for WasmiRuntimeState {
                     }
                 }
             }
+            ABI_SYSTEM_IO_WRITE_INDEX => {
+                let str_ptr = args.nth::<semantic_types::Pointer>(0);
+                let str_len = args.nth::<semantic_types::Size>(1);
+
+                let bytes = self.read_bytes(str_ptr, str_len as usize)?;
+
+                self.system_interface
+                    .write(unsafe { String::from_utf8_unchecked(bytes) });
+
+                Ok(Some(RuntimeValue::I32(KernelErrorCode::Success.into())))
+            }
+            ABI_SYSTEM_IO_WRITE_ERROR_INDEX => {
+                let str_ptr = args.nth::<semantic_types::Pointer>(0);
+                let str_len = args.nth::<semantic_types::Size>(1);
+
+                let bytes = self.read_bytes(str_ptr, str_len as usize)?;
+
+                self.system_interface
+                    .write_error(unsafe { String::from_utf8_unchecked(bytes) });
+
+                Ok(Some(RuntimeValue::I32(KernelErrorCode::Success.into())))
+            }
             _otherwise => {
                 Err(runtime_trap::host_trap(RuntimeTrap::NoSuchFunction))
             }
@@ -4981,6 +5001,36 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 Ok(FuncInstance::alloc_host(
                     signature.clone(),
                     ABI_THEOREM_SPLIT_HYPOTHESES_INDEX,
+                ))
+            }
+            ABI_SYSTEM_IO_WRITE_NAME => {
+                if !type_checking::check_system_io_write_signature(signature) {
+                    error!("Signature check failed when checking __system_io_write.  Signature: {:?}.", signature);
+
+                    return Err(WasmiError::Trap(runtime_trap::host_trap(
+                        RuntimeTrap::SignatureFailure,
+                    )));
+                }
+
+                Ok(FuncInstance::alloc_host(
+                    signature.clone(),
+                    ABI_SYSTEM_IO_WRITE_INDEX,
+                ))
+            }
+            ABI_SYSTEM_IO_WRITE_ERROR_NAME => {
+                if !type_checking::check_system_io_write_error_signature(
+                    signature,
+                ) {
+                    error!("Signature check failed when checking __system_io_write_error.  Signature: {:?}.", signature);
+
+                    return Err(WasmiError::Trap(runtime_trap::host_trap(
+                        RuntimeTrap::SignatureFailure,
+                    )));
+                }
+
+                Ok(FuncInstance::alloc_host(
+                    signature.clone(),
+                    ABI_SYSTEM_IO_WRITE_ERROR_INDEX,
                 ))
             }
             _otherwise => {

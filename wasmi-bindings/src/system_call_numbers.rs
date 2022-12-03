@@ -17,6 +17,10 @@
 //! [Nick Spinale]: https://nickspinale.com
 //! [Arm Research]: http://www.arm.com/research
 
+////////////////////////////////////////////////////////////////////////////////
+// Proof-related system calls.
+////////////////////////////////////////////////////////////////////////////////
+
 /// The name of the `TypeFormer.Resolve` ABI call.
 pub(crate) const ABI_TYPE_FORMER_RESOLVE_NAME: &str = "__type_former_resolve";
 /// The name of the `TypeFormer.IsRegistered` ABI call.
@@ -496,3 +500,18 @@ pub(crate) const ABI_THEOREM_REGISTER_EXISTS_ELIMINATION_INDEX: usize = 89;
 pub(crate) const ABI_THEOREM_SPLIT_HYPOTHESES_INDEX: usize = 90;
 /// The index of the `Theorem.Split.Conclusion` ABI call.
 pub(crate) const ABI_THEOREM_SPLIT_CONCLUSION_INDEX: usize = 91;
+
+////////////////////////////////////////////////////////////////////////////////
+// System access system calls.
+////////////////////////////////////////////////////////////////////////////////
+
+/// The name of the `System.IO.Write` ABI call.
+pub(crate) const ABI_SYSTEM_IO_WRITE_NAME: &str = "__system_io_write";
+/// The name of the `System.IO.WriteError` ABI call.
+pub(crate) const ABI_SYSTEM_IO_WRITE_ERROR_NAME: &str =
+    "__system_io_write_error";
+
+/// The index of the `System.IO.Write` ABI call.
+pub(crate) const ABI_SYSTEM_IO_WRITE_INDEX: usize = 92;
+/// The index of the `System.IO.WriteError` ABI call.
+pub(crate) const ABI_SYSTEM_IO_WRITE_ERROR_INDEX: usize = 93;

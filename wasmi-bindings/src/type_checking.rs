@@ -42,6 +42,10 @@ fn check_signature(
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Type-checking proof-related system calls.
+////////////////////////////////////////////////////////////////////////////////
+
 /// Checks the signature of the `TypeFormer.Resolve` ABI function.
 #[inline]
 pub(crate) fn check_type_former_resolve_signature(
@@ -1176,6 +1180,32 @@ pub(crate) fn check_theorem_split_hypotheses_signature(
     check_signature(
         signature,
         &[AbiType::Handle, AbiType::Pointer, AbiType::Size],
+        &Some(AbiType::ErrorCode),
+    )
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Type-checking system access system calls.
+////////////////////////////////////////////////////////////////////////////////
+
+/// Checks the signature of the `System.IO.Write` ABI function.
+#[inline]
+pub(crate) fn check_system_io_write_signature(signature: &Signature) -> bool {
+    check_signature(
+        signature,
+        &[AbiType::Pointer, AbiType::Size],
+        &Some(AbiType::ErrorCode),
+    )
+}
+
+/// Checks the signature of the `System.IO.WriteError` ABI function.
+#[inline]
+pub(crate) fn check_system_io_write_error_signature(
+    signature: &Signature,
+) -> bool {
+    check_signature(
+        signature,
+        &[AbiType::Pointer, AbiType::Size],
         &Some(AbiType::ErrorCode),
     )
 }
