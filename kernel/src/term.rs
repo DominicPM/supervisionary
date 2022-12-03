@@ -3,8 +3,8 @@
 //! HOL's terms are the terms of the explicitly-typed λ-calculus, extended with
 //! constants.  The grammar is recursively-defined, as follows:
 //!
-//! ```
-//!     r,s,t ::= x:τ | C:τ | rs | λx:τ. r
+//! ```text
+//! r,s,t ::= x:τ | C:τ | rs | λx:τ. r
 //! ```
 //!
 //! Here, to each type `τ` we associate a countably-infinite set of *variables*.
@@ -54,9 +54,9 @@
 //! `LICENSE.markdown` file in the *Supervisionary* root directory for licensing
 //! information.
 //!
-//! [Dominic Mulligan]: https://dominicpm.github.io
-//! [Nick Spinale] https://nickspinale.com
-//! [Arm Research]: http://www.arm.com/research
+//! [Dominic Mulligan]<https://dominicpm.github.io>
+//! [Nick Spinale]<https://nickspinale.com>
+//! [Arm Research]<http://www.arm.com/research>
 
 use crate::{
     handle::{

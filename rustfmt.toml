@@ -195,10 +195,6 @@ max_width = 80
 # Default: false
 reorder_imports = true
 
-# Reorder lists of names in import statements alphabetically.
-# Default: false
-reorder_imported_names = true
-
 # Maximum line length for single line if-else expressions.
 # A value of zero means always break if-else expressions.
 # Default: 50

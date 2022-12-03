@@ -1,0 +1,39 @@
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+
+[tasks.build]
+description = "Builds libsupervisionary"
+command     = "cargo"
+args        = ["build", "--release", "--target=wasm32-unknown-unknown"]
+
+[tasks.clean]
+description = "Cleans all built libsupervisionary object files."
+command     = "cargo"
+args        = ["clean"]
+
+[tasks.test]
+description = "Runs module-level unit tests for libsupervisionary."
+command     = "cargo"
+args        = ["test"]
+
+[tasks.clippy]
+description   = "Runs the Clippy linter on libsupervisionary."
+install_crate = "clippy"
+command       = "cargo"
+args          = ["clippy"]
+
+[tasks.format]
+description   = "Formats the libsupervisionary source code."
+install_crate = "rustfmt"
+command       = "cargo"
+args          = ["fmt"]
+
+[tasks.document]
+description   = "Generates rustdoc documentation from the libsupervisionary source code."
+install_crate = "rustdoc"
+command       = "cargo"
+args          = ["doc"]
+
+[tasks.all]
+description  = "Build, lint, format, and test libsupervisionary"
+dependencies = ["clean", "format", "build", "clippy", "test", "document"]

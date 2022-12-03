@@ -9,12 +9,14 @@
 //! Please see the `LICENSE.markdown` file in the *Supervisionary* root
 //! directory for licensing information.
 //!
-//! [Dominic Mulligan]: https://dominicpm.github.io
+//! [Dominic Mulligan]<https://dominicpm.github.io>
 
-use libsupervisionary::raw::system::*;
+use libsupervisionary::raw::{system::*, ErrorCode};
 
-fn main() {
-    system_io_write("Hello, world!");
+fn main() -> Result<(), ErrorCode> {
+    system_io_write("Hello, world!")?;
 
-    system_io_write_error("Error!  Error!");
+    system_io_write_error("Error!  Error!")?;
+
+    Ok(())
 }

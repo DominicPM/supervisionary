@@ -1,0 +1,39 @@
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+
+[tasks.build]
+description = "Builds Wasmi bindings for the kernel."
+command     = "cargo"
+args        = ["build", "--release"]
+
+[tasks.clean]
+description = "Cleans all built Wasmi binding object files."
+command     = "cargo"
+args        = ["clean"]
+
+[tasks.test]
+description = "Runs module-level unit tests for the Wasmi bindings."
+command     = "cargo"
+args        = ["test"]
+
+[tasks.clippy]
+description   = "Runs the Clippy linter on the Wasmi bindings."
+install_crate = "clippy"
+command       = "cargo"
+args          = ["clippy"]
+
+[tasks.format]
+description   = "Formats the Wasmi bindings source code."
+install_crate = "rustfmt"
+command       = "cargo"
+args          = ["fmt"]
+
+[tasks.document]
+description   = "Generates rustdoc documentation from the Wasmi bindings source code."
+install_crate = "rustdoc"
+command       = "cargo"
+args          = ["doc"]
+
+[tasks.all]
+description  = "Build, lint, format, and test the Wasmi bindings."
+dependencies = ["clean", "format", "build", "clippy", "test", "document"]

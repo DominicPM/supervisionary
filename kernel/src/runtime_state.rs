@@ -19,9 +19,9 @@
 //! `LICENSE.markdown` file in the *Supervisionary* root directory for licensing
 //! information.
 //!
-//! [Dominic Mulligan]: https://dominicpm.github.io
-//! [Nick Spinale]: https://nickspinale.com
-//! [Arm Research]: http://www.arm.com/research
+//! [Dominic Mulligan]<https://dominicpm.github.io>
+//! [Nick Spinale]<https://nickspinale.com>
+//! [Arm Research]<http://www.arm.com/research>
 
 use crate::{
     _type::{
@@ -501,8 +501,10 @@ impl RuntimeState {
     /// `handle`.  Here, size is defined recursively on the structure of types
     /// by:
     ///
-    ///     size(Variable(n)) = 1
-    ///     size(Combination(f, a_1, ..., a_n) = 1 + size(a_1) + ... + size(a_n)
+    /// ```text
+    /// size(Variable(n)) = 1
+    /// size(Combination(f, a_1, ..., a_n) = 1 + size(a_1) + ... + size(a_n)
+    /// ```
     ///
     /// # Errors
     ///

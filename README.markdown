@@ -49,51 +49,39 @@ These can be executed using `driver`, as explained below.
 See the `LICENSE` file in the Supervisionary root directory for full details of
 the MIT open-source license that Supervisionary is licensed under.
 
-## Tests
+## Build instructions
 
-To execute the Supervisionary tests, perform the following steps:
-
-### Compile `driver`
-
-Perform the following steps, starting from the Supervisionary root directory:
+Assuming a semi-recent Rust toolchain installation, first install `cargo-make`:
 
 ```shell
-λ > cd driver
-λ > cargo build --release
+λ > cargo install cargo-make
 ```
 
-### Compile the tests
-
-Perform the following steps, starting from the Supervisionary root directory:
+Moreover, make sure the `wasm32-unknown-unknown` toolchain is installed, as
+follows:
 
 ```shell
-λ > cd tests/type
-λ > cargo build --release --target wasm32-unknown-unknown
+λ > rustup target install wasm32-unknown-unknown
 ```
 
-Note that this requires that the `wasm32-unknown-unknown` target is installed.
-To do this:
+Then to compile all Supervisionary components, do:
 
 ```shell
-λ > rustup target add wasm32-unknown-unknown
+λ > cargo make build
 ```
 
-### Run the tests
-
-All built binaries are installed in the `target` directory which is created
-under the Supervisionary root directory.  Run `driver` as follows:
+To compile and execute Supervisionary's integration tests, do:
 
 ```shell
-λ > ./target/release/driver --binary target/wasm32-unknown-unknown/release/type.wasm
+λ > cargo make integration-tests
 ```
 
-The `driver` application will load the binary and begin executing the `main`
-function within.  This should print "Wasm module executed successfully" and
-produce a `0` return code.  To produce more verbose output, turn the Rust
-logging level up as follows:
+To build Supervisionary documentation, do:
 
 ```shell
-λ > RUST_LOG=info ./target/release/driver --binary target/wasm32-unknown-unknown/release/type.wasm
+λ > cargo make document
 ```
 
-This should produce a full trace of the kernel's activity.
+Note that generated documentation is placed in `./target/doc` in the
+Supervisionary root directory.
+
