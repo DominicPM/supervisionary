@@ -35,6 +35,11 @@ The repository contains the following components in similarly-named directories:
   supplied on the command line, loads it, then executes it under the
   Supervisionary virtual machine.  Wasm binaries must be compiled using the
   `wasm32-unknown-unknown` target and linked against `libsupervisionary`.
+- *System interface*: provides a generic interface that Supervisionary can use
+  to query or manipulate aspects of the system, for example the filesystem, or
+  clock-related functions.  Also provides a "pass through" implementation of
+  this interface which calls through to the underlying system executing
+  Supervisionary.
 - *Tests*: these are test binaries linked against `libsupervisionary` that
   exercise the different aspects of the Supervisionary system call interface.
 These can be executed using `driver`, as explained below.
