@@ -27,6 +27,7 @@ use std::{
     path::{Path, PathBuf},
     process::exit,
 };
+use system_interface::pass_through::PassThroughSystemInterface;
 use wasmi::{
     ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef,
     RuntimeValue,
@@ -79,7 +80,7 @@ fn parse_command_line_arguments() -> CommandLineArguments {
                 .short('b')
                 .long("binary")
                 .takes_value(true)
-                .about("Path to the Wasm binary to load"),
+                .help("Path to the Wasm binary to load"),
         )
         .get_matches();
 
@@ -159,7 +160,13 @@ fn main() {
 
     info!("Wasm binary loaded.");
 
-    let mut runtime_state = WasmiRuntimeState::new();
+    let system_interface = PassThroughSystemInterface::new();
+
+    let mut runtime_state = WasmiRuntimeState::new(system_interface);
+
+    info!(
+        "Wasmi runtime state initialised with pass-through system interface."
+    );
 
     let imports_resolver = ImportsBuilder::new()
         .with_resolver(WASMI_MODULE_IMPORTS_RESOLVER_NAME, &runtime_state);

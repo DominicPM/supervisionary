@@ -1,0 +1,13 @@
+[package]
+name        = "system-interface"
+version     = "0.1.0"
+authors     = ["Dominic Mulligan"]
+edition     = "2018"
+description = "A system interface for querying and manipulating the system."
+
+[dependencies]
+
+[profile.release]
+lto           = true
+opt-level     = 3
+codegen-units = 1

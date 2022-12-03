@@ -12,6 +12,8 @@
       <sourceFolder url="file://$MODULE_DIR$/wasmi-bindings/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tests/constant/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tests/term/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/system-interface/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tests/system/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

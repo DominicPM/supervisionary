@@ -1,0 +1,14 @@
+[package]
+name        = "system"
+version     = "0.1.0"
+authors     = ["Dominic Mulligan"]
+edition     = "2018"
+description = "Tests of the system ABI."
+
+[dependencies]
+libsupervisionary = {path = "../../libsupervisionary"}
+
+[profile.release]
+lto           = true
+opt-level     = 3
+codegen-units = 1

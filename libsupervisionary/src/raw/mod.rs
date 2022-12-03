@@ -25,6 +25,7 @@ use std::{
 
 pub mod _type;
 pub mod constant;
+pub mod system;
 pub mod term;
 pub mod theorem;
 pub mod type_former;

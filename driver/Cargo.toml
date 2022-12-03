@@ -6,9 +6,10 @@ edition    = "2018"
 description = "The main driver application, which loads Wasm binaries and executes them."
 
 [dependencies]
-anyhow         = "1.0.42"
-clap           = "3.0.0-beta.2"
-env_logger     = "0.9.0"
-log            = "0.4.14"
-wasmi          = "0.9.0"
-wasmi-bindings = { path = "../wasmi-bindings" }
+anyhow           = "1.0.42"
+clap             = "3.0.0-beta.2"
+env_logger       = "0.9.0"
+log              = "0.4.14"
+system-interface = { path = "../system-interface" }
+wasmi            = "0.9.0"
+wasmi-bindings   = { path = "../wasmi-bindings" }
