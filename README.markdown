@@ -1,5 +1,7 @@
 # The Supervisionary proof-checking system
 
+![build badge](https://github.com/DominicPM/supervisionary/actions/workflows/ci.yml/badge.svg)
+
 *Supervisionary* is an experimental proof-checking system for Gordon's
 higher-order logic ("HOL").  Rather than using programming language features to
 isolate and protect the kernel, as in typical LCF-style implementations of HOL
