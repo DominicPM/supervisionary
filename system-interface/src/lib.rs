@@ -9,7 +9,7 @@
 //! Please see the `LICENSE.markdown` file in the *Supervisionary* root
 //! directory for licensing information.
 //!
-//! [Dominic Mulligan]: https://dominicpm.github.io
+//! [Dominic Mulligan]<https://dominicpm.github.io>
 
 pub mod pass_through;
 

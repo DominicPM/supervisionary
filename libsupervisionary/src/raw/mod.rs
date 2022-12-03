@@ -11,9 +11,9 @@
 //! `LICENSE.markdown` file in the *Supervisionary* root directory for licensing
 //! information.
 //!
-//! [Dominic Mulligan]: https://dominicpm.github.io
-//! [Nick Spinale]: https://nickspinale.com
-//! [Arm Research]: http://www.arm.com/research
+//! [Dominic Mulligan]<https://dominicpm.github.io>
+//! [Nick Spinale]<https://nickspinale.com>
+//! [Arm Research]<http://www.arm.com/research>
 
 use std::{
     convert::TryFrom,
@@ -174,9 +174,9 @@ impl Display for ErrorCode {
 }
 
 /// Conversion into an `i32` type for ABI transport.
-impl Into<i32> for ErrorCode {
-    fn into(self) -> i32 {
-        match self {
+impl From<ErrorCode> for i32 {
+    fn from(value: ErrorCode) -> Self {
+        match value {
             ErrorCode::NoSuchFunction => 1,
             ErrorCode::NoSuchConstantRegistered => 2,
             ErrorCode::NoSuchTermRegistered => 3,

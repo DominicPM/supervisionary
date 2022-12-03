@@ -13,7 +13,7 @@
 //! Please see the `LICENSE.markdown` file in the *Supervisionary* root
 //! directory for licensing information.
 //!
-//! [Dominic Mulligan]: https://dominicpm.github.io
+//! [Dominic Mulligan]<https://dominicpm.github.io>
 
 use super::SystemInterface;
 use std::io::{stderr, stdout, Write};
@@ -50,12 +50,12 @@ impl SystemInterface for PassThroughSystemInterface {
     /// Writes a string, `s`, to the system's `stdout` file handle.
     #[inline]
     fn write(&self, s: String) {
-        stdout().write(s.as_bytes()).unwrap();
+        stdout().write_all(s.as_bytes()).unwrap();
     }
 
     /// Writes a string, `s`, to the system's `stderr` file handle.
     #[inline]
     fn write_error(&self, s: String) {
-        stderr().write(s.as_bytes()).unwrap();
+        stderr().write_all(s.as_bytes()).unwrap();
     }
 }

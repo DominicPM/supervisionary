@@ -3,8 +3,8 @@
 //! HOL uses simple-types with top-level polymorphism.  The grammar of types
 //! is recursively defined as follows:
 //!
-//! ```
-//!     τ, τʹ, ... ::= ⍺ | F(τ₁, ..., τₙ)
+//! ```text
+//! τ, τʹ, ... ::= ⍺ | F(τ₁, ..., τₙ)
 //! ```
 //!
 //! Here, ⍺ ranges arbitrarily over a set of *type variables* whilst `F` ranges
@@ -29,9 +29,9 @@
 //! `LICENSE.markdown` file in the *Supervisionary* root directory for licensing
 //! information.
 //!
-//! [Dominic Mulligan]: https://dominicpm.github.io
-//! [Nick Spinale]: https://nickspinale.com
-//! [Arm Research]: http://www.arm.com/research
+//! [Dominic Mulligan]<https://dominicpm.github.io>
+//! [Nick Spinale]<https://nickspinale.com>
+//! [Arm Research]<http://www.arm.com/research>
 
 use crate::{
     handle::{

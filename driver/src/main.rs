@@ -15,9 +15,9 @@
 //! `LICENSE.markdown` file in the *Supervisionary* root directory for licensing
 //! information.
 //!
-//! [Dominic Mulligan]: https://dominicpm.github.io
-//! [Nick Spinale]: https://nickspinale.com
-//! [Arm Research]: http://www.arm.com/research
+//! [Dominic Mulligan]<https://dominicpm.github.io>
+//! [Nick Spinale]<https://nickspinale.com>
+//! [Arm Research]<http://www.arm.com/research>
 
 use clap::{App, Arg};
 use log::info;
@@ -151,9 +151,9 @@ fn main() {
 
     let command_line_args = parse_command_line_arguments();
 
-    let binary = load_binary(&command_line_args.wasm_binary_path);
+    let binary = load_binary(command_line_args.wasm_binary_path);
 
-    let loaded_module = Module::from_buffer(&binary).unwrap_or_else(|e| {
+    let loaded_module = Module::from_buffer(binary).unwrap_or_else(|e| {
         eprintln!("Failed to load Wasm module.  Error produced: {}.", e);
         exit(1);
     });

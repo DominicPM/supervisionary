@@ -24,9 +24,9 @@
 //! `LICENSE.markdown` file in the *Supervisionary* root directory for licensing
 //! information.
 //!
-//! [Dominic Mulligan]: https://dominicpm.github.io
-//! [Nick Spinale]: https://nickspinale.com
-//! [Arm Research]: http://www.arm.com/research
+//! [Dominic Mulligan]<https://dominicpm.github.io>
+//! [Nick Spinale]<https://nickspinale.com>
+//! [Arm Research]<http://www.arm.com/research>
 
 use std::{
     convert::TryFrom,
@@ -175,7 +175,7 @@ impl Display for ErrorCode {
 }
 
 /* XXX: this is a horror show, as we're forced to either have an-almost false
- * dependency on WASMI in this crate to declare `ErrorCode` to be an
+ * dependency on Wasmi in this crate to declare `ErrorCode` to be an
  * instantiation of the `HostError` crate, or have a duplicate copy of the
  * `HostError` type in the `wasmi-bindings` crate to work around the rules about
  * trait instantiations in Rust.
@@ -183,10 +183,9 @@ impl Display for ErrorCode {
 #[cfg(feature = "wasmi-hosterror")]
 impl HostError for ErrorCode {}
 
-/// Conversion into an `i32` type for ABI transport.
-impl Into<i32> for ErrorCode {
-    fn into(self) -> i32 {
-        match self {
+impl From<ErrorCode> for i32 {
+    fn from(value: ErrorCode) -> Self {
+        match value {
             ErrorCode::Success => 0,
             ErrorCode::NoSuchFunction => 1,
             ErrorCode::NoSuchConstantRegistered => 2,

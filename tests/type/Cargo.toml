@@ -7,8 +7,3 @@ description = "Tests of the type ABI."
 
 [dependencies]
 libsupervisionary = {path = "../../libsupervisionary"}
-
-[profile.release]
-lto           = true
-opt-level     = 3
-codegen-units = 1

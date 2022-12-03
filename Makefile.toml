@@ -1,0 +1,36 @@
+# Supervisionary project-level Makefile
+
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+
+[tasks.constant-integration-test]
+description  = "Run the driver executable on the constant tests."
+env          = { "RUST_LOG" = "info" }
+script       = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/release/driver --binary=${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/wasm32-unknown-unknown/release/constant.wasm"
+
+[tasks.system-integration-test]
+description  = "Run the driver executable on the system tests."
+env          = { "RUST_LOG" = "info" }
+script       = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/release/driver --binary=${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/wasm32-unknown-unknown/release/system.wasm"
+
+[tasks.term-integration-test]
+description  = "Run the driver executable on the term tests."
+env          = { "RUST_LOG" = "info" }
+script       = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/release/driver --binary=${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/wasm32-unknown-unknown/release/term.wasm"
+
+[tasks.type-integration-test]
+description  = "Run the driver executable on the type tests."
+env          = { "RUST_LOG" = "info" }
+script       = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/release/driver --binary=${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/wasm32-unknown-unknown/release/type.wasm"
+
+[tasks.type-former-integration-test]
+description  = "Run the driver executable on the type-former tests."
+env          = { "RUST_LOG" = "info" }
+script       = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/release/driver --binary=${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/wasm32-unknown-unknown/release/type_former.wasm"
+
+[tasks.build-indirection]
+run_task = { name = ["build"], fork = true }
+
+[tasks.integration-tests]
+workspace = false
+run_task = { name = ["build-indirection", "constant-integration-test", "system-integration-test", "term-integration-test", "type-integration-test", "type-former-integration-test"] }

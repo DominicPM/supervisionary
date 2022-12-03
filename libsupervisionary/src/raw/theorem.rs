@@ -10,8 +10,7 @@
 //! `LICENSE.markdown` file in the *Supervisionary* root directory for licensing
 //! information.
 //!
-//! [Dominic Mulligan]: https://dominicpm.github.io
-//! [Arm Research]: http://www.arm.com/research
+//! [Dominic Mulligan]<https://dominicpm.github.io>
 
 use crate::raw::{tags, ErrorCode, Handle, Name, RawHandle};
 use std::{convert::TryFrom, marker::PhantomData};
@@ -928,7 +927,7 @@ where
 
     let status = unsafe {
         __theorem_register_forall_introduction(
-            name_handle.into() as u64,
+            name_handle.into(),
             *type_handle.into() as u64,
             *theorem_handle.into() as u64,
             &mut result as *mut u64,

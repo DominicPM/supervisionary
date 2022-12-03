@@ -1,0 +1,39 @@
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+
+[tasks.build]
+description = "Builds the Supervisionary driver."
+command     = "cargo"
+args        = ["build", "--release"]
+
+[tasks.clean]
+description = "Cleans all built driver object files and executables."
+command     = "cargo"
+args        = ["clean"]
+
+[tasks.test]
+description = "Runs module-level unit tests for the driver."
+command     = "cargo"
+args        = ["test"]
+
+[tasks.clippy]
+description   = "Runs the Clippy linter on the driver source files."
+install_crate = "clippy"
+command       = "cargo"
+args          = ["clippy"]
+
+[tasks.format]
+description   = "Formats the driver source code."
+install_crate = "rustfmt"
+command       = "cargo"
+args          = ["fmt"]
+
+[tasks.document]
+description   = "Generates rustdoc documentation from the driver source code."
+install_crate = "rustdoc"
+command       = "cargo"
+args          = ["doc"]
+
+[tasks.all]
+description  = "Build, lint, format, and test the driver."
+dependencies = ["clean", "format", "build", "clippy", "test", "document"]
