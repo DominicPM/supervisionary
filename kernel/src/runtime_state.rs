@@ -23,6 +23,7 @@
 //! [Nick Spinale]<https://nickspinale.com>
 //! [Arm Research]<http://www.arm.com/research>
 
+use crate::handle::PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION;
 use crate::{
     _type::{
         Type, TYPE_ALPHA, TYPE_BETA, TYPE_BINARY_CONNECTIVE,
@@ -227,7 +228,7 @@ impl RuntimeState {
     where
         T: Borrow<Handle<tags::Type>>,
     {
-        info!("Resolving type with handle: {}.", handle.borrow());
+        info!("Resolving {}.", handle.borrow());
 
         self.types.get(handle.borrow())
     }
@@ -736,16 +737,23 @@ impl RuntimeState {
     /// expected that `trm` has been checked for well-formedness before this
     /// function is called.
     fn admit_term(&mut self, trm: Term) -> Handle<tags::Term> {
+        info!("Admitting {:?}.", trm);
+
         for (handle, registered) in self.terms.clone().iter() {
             if self
                 .is_alpha_equivalent_inner(&trm, registered)
                 .expect(DANGLING_HANDLE_ERROR)
             {
+                info!("Term already registered at {}.", handle);
+
                 return handle.clone();
             }
         }
 
         let fresh = self.issue_handle();
+
+        info!("Registering term {:?} at {}.", trm, fresh);
+
         self.terms.insert(fresh.clone(), trm);
         fresh
     }
@@ -2553,6 +2561,9 @@ impl RuntimeState {
     /// structural equality.
     fn admit_theorem(&mut self, thm: Theorem) -> Handle<tags::Theorem> {
         let fresh = self.issue_handle();
+
+        info!("Admitting {:?}.", thm);
+
         self.theorems.insert(fresh.clone(), thm);
         fresh
     }
@@ -2564,6 +2575,8 @@ impl RuntimeState {
     where
         T: Borrow<Handle<tags::Theorem>>,
     {
+        info!("Resolving {}.", handle.borrow());
+
         self.theorems.get(handle.borrow())
     }
 
@@ -2580,6 +2593,46 @@ impl RuntimeState {
         );
 
         self.resolve_theorem_handle(handle).is_some()
+    }
+
+    /// Returns `Ok(s)` iff `handle` points-to a theorem object registered in
+    /// the kernel's theorem table, and `s` is the combined sizes of the theorem
+    /// conclusion and hypotheses, plus `1`.
+    ///
+    /// Used for allocating buffers in user-space for computing e.g., dynamic
+    /// values that depend on the theorem object, like free-variables, and
+    /// similar.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `handle` does not
+    /// point-to a theorem in the runtime state's theorem-table.
+    pub fn theorem_size<T>(&self, handle: T) -> Result<u64, ErrorCode>
+    where
+        T: Borrow<Handle<tags::Theorem>>,
+    {
+        info!("Computing size of {}.", handle.borrow());
+
+        let t = self
+            .resolve_theorem_handle(handle)
+            .ok_or(ErrorCode::NoSuchTheoremRegistered)?;
+
+        let concl = t.conclusion();
+        let prems = t.premisses();
+
+        let mut size = 1u64;
+
+        size += self
+            .term_size(concl)
+            .unwrap_or_else(|_| panic!("{}", DANGLING_HANDLE_ERROR));
+
+        for p in prems.iter() {
+            size += self
+                .term_size(p)
+                .unwrap_or_else(|_| panic!("{}", DANGLING_HANDLE_ERROR));
+        }
+
+        Ok(size)
     }
 
     /// Returns `Ok(conclusion)` if `handle` points-to a theorem object
@@ -4207,7 +4260,12 @@ impl Default for RuntimeState {
             (PREALLOCATED_HANDLE_TERM_EQUALITY, TERM_EQUALITY_CONSTANT),
         ]);
 
-        let theorems = HashMap::from_iter(vec![]);
+        let empty_prems: Vec<Handle<tags::Term>> = Vec::new();
+
+        let theorems = HashMap::from_iter(vec![(
+            PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION,
+            Theorem::new(empty_prems, PREALLOCATED_HANDLE_TERM_TRUE),
+        )]);
 
         RuntimeState {
             next_handle: PREALLOCATED_HANDLE_UPPER_BOUND,

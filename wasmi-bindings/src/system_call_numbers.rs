@@ -323,6 +323,9 @@ pub(crate) const ABI_THEOREM_REGISTER_ASSUMPTION_NAME: &str =
 pub(crate) const ABI_THEOREM_REGISTER_WEAKEN_NAME: &str =
     "__theorem_register_weaken";
 
+/// The name of the `Theorem.Size` ABI call.
+pub(crate) const ABI_THEOREM_SIZE_NAME: &str = "__theorem_size";
+
 /// The name of the `Theorem.Register.Reflexivity` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_REFLEXIVITY_NAME: &str =
     "__theorem_register_reflexivity";
@@ -351,9 +354,6 @@ pub(crate) const ABI_THEOREM_REGISTER_SUBSTITUTE_NAME: &str =
 pub(crate) const ABI_THEOREM_REGISTER_TYPE_SUBSTITUTE_NAME: &str =
     "__theorem_register_type_substitute";
 
-/// The name of the `Theorem.Register.TruthIntroduction` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_TRUTH_INTRODUCTION_NAME: &str =
-    "__theorem_register_truth_introduction";
 /// The name of the `Theorem.Register.FalsityElimination` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_FALSITY_ELIMINATION_NAME: &str =
     "__theorem_register_falsity_elimination";
@@ -427,28 +427,29 @@ pub(crate) const ABI_THEOREM_REGISTER_ASSUMPTION_INDEX: usize = 61;
 /// The index of the `Theorem.Register.Weaken` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_WEAKEN_INDEX: usize = 62;
 
+/// The index of the `Theorem.Size` ABI call.
+pub(crate) const ABI_THEOREM_SIZE_INDEX: usize = 63;
+
 /// The index of the `Theorem.Register.Reflexivity` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_REFLEXIVITY_INDEX: usize = 63;
+pub(crate) const ABI_THEOREM_REGISTER_REFLEXIVITY_INDEX: usize = 64;
 /// The index of the `Theorem.Register.Symmetry` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_SYMMETRY_INDEX: usize = 64;
+pub(crate) const ABI_THEOREM_REGISTER_SYMMETRY_INDEX: usize = 65;
 /// The index of the `Theorem.Register.Transitivity` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_TRANSITIVITY_INDEX: usize = 65;
+pub(crate) const ABI_THEOREM_REGISTER_TRANSITIVITY_INDEX: usize = 66;
 /// The index of the `Theorem.Register.Beta` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_BETA_INDEX: usize = 66;
+pub(crate) const ABI_THEOREM_REGISTER_BETA_INDEX: usize = 67;
 /// The index of the `Theorem.Register.Eta` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_ETA_INDEX: usize = 67;
+pub(crate) const ABI_THEOREM_REGISTER_ETA_INDEX: usize = 68;
 /// The index of the `Theorem.Register.Application` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_APPLICATION_INDEX: usize = 68;
+pub(crate) const ABI_THEOREM_REGISTER_APPLICATION_INDEX: usize = 69;
 /// The index of the `Theorem.Register.Lambda` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_LAMBDA_INDEX: usize = 69;
+pub(crate) const ABI_THEOREM_REGISTER_LAMBDA_INDEX: usize = 70;
 
 /// The index of the `Theorem.Register.Substitute` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_SUBSTITUTE_INDEX: usize = 70;
+pub(crate) const ABI_THEOREM_REGISTER_SUBSTITUTE_INDEX: usize = 71;
 /// The index of the `Theorem.Register.TypeSubstitute` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_TYPE_SUBSTITUTE_INDEX: usize = 71;
+pub(crate) const ABI_THEOREM_REGISTER_TYPE_SUBSTITUTE_INDEX: usize = 72;
 
-/// The index of the `Theorem.Register.TruthIntroduction` ABI call.
-pub(crate) const ABI_THEOREM_REGISTER_TRUTH_INTRODUCTION_INDEX: usize = 72;
 /// The index of the `Theorem.Register.FalsityElimination` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_FALSITY_ELIMINATION_INDEX: usize = 73;
 

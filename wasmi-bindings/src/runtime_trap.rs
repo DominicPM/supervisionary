@@ -35,7 +35,7 @@ pub enum RuntimeTrap {
     /// An attempted write to the WASM guest's heap failed.
     MemoryWriteFailed,
     /// The WASM guest program tried to call a function that does not exist.
-    NoSuchFunction,
+    NoSuchFunction(usize),
     /// A type-signature check on a host-function failed.
     SignatureFailure,
 }
@@ -44,7 +44,9 @@ pub enum RuntimeTrap {
 impl Display for RuntimeTrap {
     fn fmt(&self, f: &mut Formatter) -> Result<(), DisplayError> {
         match self {
-            RuntimeTrap::NoSuchFunction => write!(f, "NoSuchFunction"),
+            RuntimeTrap::NoSuchFunction(opcode) => {
+                write!(f, "NoSuchFunction: {}", opcode)
+            }
             RuntimeTrap::SignatureFailure => write!(f, "SignatureFailure"),
             RuntimeTrap::MemoryNotRegistered => {
                 write!(f, "MemoryNotRegistered")

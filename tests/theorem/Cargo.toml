@@ -1,0 +1,9 @@
+[package]
+name        = "theorem"
+version     = "0.1.0"
+authors     = ["Dominic Mulligan"]
+edition     = "2018"
+description = "Tests of the theorem ABI."
+
+[dependencies]
+libsupervisionary = {path = "../../libsupervisionary"}

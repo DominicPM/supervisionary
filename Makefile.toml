@@ -18,6 +18,12 @@ description  = "Run the driver executable on the term tests."
 env          = { "RUST_LOG" = "info" }
 script       = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/release/driver --binary=${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/wasm32-unknown-unknown/release/term.wasm"
 
+[tasks.theorem-integration-test]
+description  = "Run the driver executable on the theorem tests."
+env          = { "RUST_LOG" = "info" }
+script       = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/release/driver --binary=${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/target/wasm32-unknown-unknown/release/theorem.wasm"
+
+
 [tasks.type-integration-test]
 description  = "Run the driver executable on the type tests."
 env          = { "RUST_LOG" = "info" }
@@ -33,4 +39,4 @@ run_task = { name = ["build"], fork = true }
 
 [tasks.integration-tests]
 workspace = false
-run_task = { name = ["build-indirection", "constant-integration-test", "system-integration-test", "term-integration-test", "type-integration-test", "type-former-integration-test"] }
+dependencies = ["build-indirection", "constant-integration-test", "system-integration-test", "term-integration-test", "theorem-integration-test", "type-integration-test", "type-former-integration-test"]

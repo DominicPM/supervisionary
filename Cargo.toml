@@ -7,6 +7,7 @@ members = [
     "tests/constant",
     "tests/system",
     "tests/term",
+    "tests/theorem",
     "tests/type",
     "tests/type_former",
     "wasmi-bindings"

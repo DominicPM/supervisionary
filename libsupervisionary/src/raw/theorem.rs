@@ -16,6 +16,16 @@ use crate::raw::{tags, ErrorCode, Handle, Name, RawHandle};
 use std::{convert::TryFrom, marker::PhantomData};
 
 ////////////////////////////////////////////////////////////////////////////////
+// Pre-allocated theorem-related handles.
+////////////////////////////////////////////////////////////////////////////////
+
+/// A pre-allocated handle used to refer to the truth term, the truth constant
+/// lifted into a term.
+pub const PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION: Handle<
+    tags::Theorem,
+> = Handle::new(29usize, PhantomData);
+
+////////////////////////////////////////////////////////////////////////////////
 // ABI bindings.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -104,12 +114,6 @@ extern "C" {
         domain_length: u64,
         range_base: *const RawHandle,
         range_length: u64,
-        result: *mut RawHandle,
-    ) -> i32;
-    /// Raw ABI binding to the `Theorem.Register.Truth.Introduction` function.
-    fn __theorem_register_truth_introduction(
-        hypotheses_base: *const RawHandle,
-        hypotheses_length: u64,
         result: *mut RawHandle,
     ) -> i32;
     /// Raw ABI binding to the `Theorem.Register.Falsity.Elimination` function.
@@ -286,7 +290,7 @@ where
 
 pub fn theorem_register_assumption<T>(
     term_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Term>>,
 {
@@ -307,7 +311,7 @@ where
 pub fn theorem_register_weaken<T, U>(
     term_handle: T,
     theorem_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Term>>,
     U: Into<Handle<tags::Theorem>>,
@@ -333,7 +337,7 @@ where
 
 pub fn theorem_register_reflexivity<T>(
     term_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Term>>,
 {
@@ -453,7 +457,7 @@ where
 
 pub fn theorem_register_beta<T>(
     term_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Term>>,
 {
@@ -473,7 +477,7 @@ where
 
 pub fn theorem_register_eta<T>(
     term_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Term>>,
 {
@@ -566,38 +570,10 @@ where
     }
 }
 
-pub fn theorem_register_truth_introduction<T>(
-    hypotheses: Vec<T>,
-) -> Result<Handle<tags::Term>, ErrorCode>
-where
-    T: Into<Handle<tags::Term>> + Clone,
-{
-    let mut result: u64 = 0;
-    let hypotheses: Vec<u64> = hypotheses
-        .iter()
-        .cloned()
-        .map(|h| *(h.into()) as u64)
-        .collect();
-
-    let status = unsafe {
-        __theorem_register_truth_introduction(
-            hypotheses.as_ptr(),
-            hypotheses.len() as u64,
-            &mut result as *mut u64,
-        )
-    };
-
-    if status == 0 {
-        Ok(Handle::new(result as usize, PhantomData))
-    } else {
-        Err(ErrorCode::try_from(status).unwrap())
-    }
-}
-
 pub fn theorem_register_falsity_elimination<T, U>(
     theorem_handle: T,
     term_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Term>>,
@@ -622,7 +598,7 @@ where
 pub fn theorem_register_conjunction_introduction<T, U>(
     left_handle: T,
     right_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Theorem>>,
@@ -646,7 +622,7 @@ where
 
 pub fn theorem_register_conjunction_left_elimination<T>(
     theorem_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
 {
@@ -668,7 +644,7 @@ where
 
 pub fn theorem_register_conjunction_right_elimination<T>(
     theorem_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
 {
@@ -691,7 +667,7 @@ where
 pub fn theorem_register_disjunction_left_introduction<T, U>(
     theorem_handle: T,
     term_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Term>>,
@@ -716,7 +692,7 @@ where
 pub fn theorem_register_disjunction_right_introduction<T, U>(
     theorem_handle: T,
     term_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Term>>,
@@ -742,7 +718,7 @@ pub fn theorem_register_disjunction_elimination<T, U, V>(
     left_handle: T,
     mid_handle: U,
     right_handle: V,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Theorem>>,
@@ -769,7 +745,7 @@ where
 pub fn theorem_negation_introduction<T, U>(
     theorem_handle: T,
     term_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Term>>,
@@ -794,7 +770,7 @@ where
 pub fn theorem_register_negation_elimination<T, U>(
     left_handle: T,
     right_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Theorem>>,
@@ -819,7 +795,7 @@ where
 pub fn theorem_implication_introduction<T, U>(
     theorem_handle: T,
     term_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Term>>,
@@ -844,7 +820,7 @@ where
 pub fn theorem_register_implication_elimination<T, U>(
     left_handle: T,
     right_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Theorem>>,
@@ -869,7 +845,7 @@ where
 pub fn theorem_register_iff_introduction<T, U>(
     left_handle: T,
     right_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Theorem>>,
@@ -893,7 +869,7 @@ where
 
 pub fn theorem_register_iff_left_elimination<T>(
     theorem_handle: T,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
 {
@@ -917,7 +893,7 @@ pub fn theorem_forall_introduction<N, T, U>(
     name_handle: N,
     type_handle: T,
     theorem_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     N: Into<Name>,
     T: Into<Handle<tags::Type>>,
@@ -944,7 +920,7 @@ where
 pub fn theorem_forall_elimination<T, U>(
     theorem_handle: T,
     term_handle: U,
-) -> Result<Handle<tags::Term>, ErrorCode>
+) -> Result<Handle<tags::Theorem>, ErrorCode>
 where
     T: Into<Handle<tags::Theorem>>,
     U: Into<Handle<tags::Term>>,

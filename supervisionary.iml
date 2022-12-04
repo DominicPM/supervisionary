@@ -14,6 +14,7 @@
       <sourceFolder url="file://$MODULE_DIR$/tests/term/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/system-interface/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tests/system/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tests/theorem/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
