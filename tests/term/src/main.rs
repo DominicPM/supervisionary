@@ -15,6 +15,7 @@ use libsupervisionary::raw::{
     _type::{
         PREALLOCATED_HANDLE_TYPE_BINARY_CONNECTIVE,
         PREALLOCATED_HANDLE_TYPE_BINARY_PREDICATE,
+        PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE,
         PREALLOCATED_HANDLE_TYPE_PROP, PREALLOCATED_HANDLE_TYPE_QUANTIFIER,
         PREALLOCATED_HANDLE_TYPE_UNARY_CONNECTIVE,
     },
@@ -25,6 +26,7 @@ use libsupervisionary::raw::{
         PREALLOCATED_HANDLE_CONSTANT_EXISTS,
         PREALLOCATED_HANDLE_CONSTANT_FALSE,
         PREALLOCATED_HANDLE_CONSTANT_FORALL,
+        PREALLOCATED_HANDLE_CONSTANT_HILBERT_EPSILON,
         PREALLOCATED_HANDLE_CONSTANT_IMPLICATION,
         PREALLOCATED_HANDLE_CONSTANT_NEGATION,
         PREALLOCATED_HANDLE_CONSTANT_TRUE,
@@ -43,6 +45,7 @@ fn main() {
     assert!(term_is_registered(PREALLOCATED_HANDLE_TERM_IMPLICATION));
     assert!(term_is_registered(PREALLOCATED_HANDLE_TERM_NEGATION));
     assert!(term_is_registered(PREALLOCATED_HANDLE_TERM_TRUE));
+    assert!(term_is_registered(PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON));
 
     assert_eq!(
         term_test_constant(PREALLOCATED_HANDLE_TERM_CONJUNCTION),
@@ -58,6 +61,10 @@ fn main() {
     );
     assert_eq!(
         term_test_constant(PREALLOCATED_HANDLE_TERM_EXISTS),
+        Ok(true)
+    );
+    assert_eq!(
+        term_test_constant(PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON),
         Ok(true)
     );
     assert_eq!(term_test_constant(PREALLOCATED_HANDLE_TERM_FALSE), Ok(true));
@@ -118,6 +125,13 @@ fn main() {
         ))
     );
     assert_eq!(
+        term_split_constant(PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON),
+        Ok((
+            PREALLOCATED_HANDLE_CONSTANT_HILBERT_EPSILON,
+            PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE
+        ))
+    );
+    assert_eq!(
         term_split_constant(PREALLOCATED_HANDLE_TERM_IMPLICATION),
         Ok((
             PREALLOCATED_HANDLE_CONSTANT_IMPLICATION,
@@ -148,6 +162,10 @@ fn main() {
     assert_eq!(term_size(PREALLOCATED_HANDLE_TERM_IMPLICATION), Ok(6usize));
     assert_eq!(term_size(PREALLOCATED_HANDLE_TERM_NEGATION), Ok(4usize));
     assert_eq!(term_size(PREALLOCATED_HANDLE_TERM_TRUE), Ok(2usize));
+    assert_eq!(
+        term_size(PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON),
+        Ok(6usize)
+    );
 
     assert_eq!(
         term_free_variables(PREALLOCATED_HANDLE_TERM_CONJUNCTION),
@@ -174,6 +192,10 @@ fn main() {
         Ok(HashSet::new())
     );
     assert_eq!(
+        term_free_variables(PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON),
+        Ok(HashSet::new())
+    );
+    assert_eq!(
         term_free_variables(PREALLOCATED_HANDLE_TERM_IMPLICATION),
         Ok(HashSet::new())
     );
@@ -196,6 +218,10 @@ fn main() {
     );
     assert_eq!(
         term_free_type_variables(PREALLOCATED_HANDLE_TERM_EQUALITY),
+        Ok(HashSet::from([0]))
+    );
+    assert_eq!(
+        term_free_type_variables(PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON),
         Ok(HashSet::from([0]))
     );
     assert_eq!(
@@ -248,6 +274,10 @@ fn main() {
         Ok(PREALLOCATED_HANDLE_TYPE_QUANTIFIER)
     );
     assert_eq!(
+        term_type_infer(PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON),
+        Ok(PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE)
+    );
+    assert_eq!(
         term_type_infer(PREALLOCATED_HANDLE_TERM_IMPLICATION),
         Ok(PREALLOCATED_HANDLE_TYPE_BINARY_CONNECTIVE)
     );
@@ -282,6 +312,10 @@ fn main() {
     );
     assert_eq!(
         term_type_is_proposition(PREALLOCATED_HANDLE_TERM_FORALL),
+        Ok(false)
+    );
+    assert_eq!(
+        term_type_is_proposition(PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON),
         Ok(false)
     );
     assert_eq!(
@@ -330,6 +364,15 @@ fn main() {
         .and_then(term_split_constant)
         .map(|t| t.0),
         Ok(PREALLOCATED_HANDLE_CONSTANT_EXISTS)
+    );
+    assert_eq!(
+        term_type_substitute(
+            PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON,
+            vec![(0u32, PREALLOCATED_HANDLE_TYPE_PROP)]
+        )
+        .and_then(term_split_constant)
+        .map(|t| t.0),
+        Ok(PREALLOCATED_HANDLE_CONSTANT_HILBERT_EPSILON)
     );
     assert_eq!(
         term_type_substitute(

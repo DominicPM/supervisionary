@@ -108,6 +108,8 @@ use crate::{
         ABI_THEOREM_REGISTER_DISJUNCTION_LEFT_INTRODUCTION_NAME,
         ABI_THEOREM_REGISTER_DISJUNCTION_RIGHT_INTRODUCTION_INDEX,
         ABI_THEOREM_REGISTER_DISJUNCTION_RIGHT_INTRODUCTION_NAME,
+        ABI_THEOREM_REGISTER_EPSILON_ELIMINATION_INDEX,
+        ABI_THEOREM_REGISTER_EPSILON_ELIMINATION_NAME,
         ABI_THEOREM_REGISTER_ETA_INDEX, ABI_THEOREM_REGISTER_ETA_NAME,
         ABI_THEOREM_REGISTER_EXISTS_ELIMINATION_INDEX,
         ABI_THEOREM_REGISTER_EXISTS_ELIMINATION_NAME,
@@ -1814,6 +1816,20 @@ impl WasmiRuntimeState {
         self.kernel
             .borrow_mut()
             .theorem_register_exists_elimination(left_handle, right_handle)
+    }
+
+    /// Lifting of the `theorem_register_epsilon_elimination` function.
+    #[inline]
+    fn theorem_register_epsilon_elimination<T>(
+        &self,
+        theorem_handle: T,
+    ) -> Result<Handle<tags::Theorem>, KernelErrorCode>
+    where
+        T: Borrow<Handle<tags::Theorem>>,
+    {
+        self.kernel
+            .borrow_mut()
+            .theorem_register_epsilon_elimination(theorem_handle)
     }
 
     /// Lifting of the `theorem_split_conclusion` function.
@@ -3610,6 +3626,24 @@ impl Externals for WasmiRuntimeState {
                     }
                 }
             }
+            ABI_THEOREM_REGISTER_EPSILON_ELIMINATION_INDEX => {
+                let theorem_handle: Handle<tags::Theorem> = Handle::from(
+                    args.nth::<semantic_types::Handle>(0) as usize,
+                );
+                let result_ptr = args.nth::<semantic_types::Pointer>(1);
+
+                match self.theorem_register_epsilon_elimination(theorem_handle)
+                {
+                    Err(e) => Ok(Some(RuntimeValue::I32(e as i32))),
+                    Ok(result) => {
+                        self.write_handle(result_ptr, result)?;
+
+                        Ok(Some(RuntimeValue::I32(
+                            KernelErrorCode::Success.into(),
+                        )))
+                    }
+                }
+            }
             ABI_THEOREM_REGISTER_EXISTS_INTRODUCTION_INDEX => {
                 let theorem_handle: Handle<tags::Theorem> = Handle::from(
                     args.nth::<semantic_types::Handle>(0) as usize,
@@ -5038,6 +5072,22 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 Ok(FuncInstance::alloc_host(
                     signature.clone(),
                     ABI_THEOREM_REGISTER_EXISTS_ELIMINATION_INDEX,
+                ))
+            }
+            ABI_THEOREM_REGISTER_EPSILON_ELIMINATION_NAME => {
+                if !type_checking::check_theorem_register_epsilon_elimination_signature(
+                    signature,
+                ) {
+                    error!("Signature check failed when checking __theorem_register_epsilon_elimination.  Signature: {:?}.", signature);
+
+                    return Err(WasmiError::Trap(runtime_trap::host_trap(
+                        RuntimeTrap::SignatureFailure,
+                    )));
+                }
+
+                Ok(FuncInstance::alloc_host(
+                    signature.clone(),
+                    ABI_THEOREM_REGISTER_EPSILON_ELIMINATION_INDEX,
                 ))
             }
             ABI_THEOREM_REGISTER_EXISTS_INTRODUCTION_NAME => {

@@ -23,7 +23,7 @@ use std::{convert::TryFrom, marker::PhantomData};
 /// lifted into a term.
 pub const PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION: Handle<
     tags::Theorem,
-> = Handle::new(29usize, PhantomData);
+> = Handle::new(31usize, PhantomData);
 
 ////////////////////////////////////////////////////////////////////////////////
 // ABI bindings.
@@ -203,6 +203,11 @@ extern "C" {
     fn __theorem_register_forall_elimination(
         theorem_handle: RawHandle,
         term_handle: RawHandle,
+        result: *mut RawHandle,
+    ) -> i32;
+    /// Raw ABI binding to the `Theorem.Register.Epsilon.Elimination` function.
+    fn __theorem_register_epsilon_elimination(
+        theorem_handle: RawHandle,
         result: *mut RawHandle,
     ) -> i32;
 }
@@ -931,6 +936,28 @@ where
         __theorem_register_forall_elimination(
             *theorem_handle.into() as u64,
             *term_handle.into() as u64,
+            &mut result as *mut u64,
+        )
+    };
+
+    if status == 0 {
+        Ok(Handle::new(result as usize, PhantomData))
+    } else {
+        Err(ErrorCode::try_from(status).unwrap())
+    }
+}
+
+pub fn theorem_epsilon_elimination<T>(
+    theorem_handle: T,
+) -> Result<Handle<tags::Theorem>, ErrorCode>
+where
+    T: Into<Handle<tags::Theorem>>,
+{
+    let mut result: u64 = 0;
+
+    let status = unsafe {
+        __theorem_register_epsilon_elimination(
+            *theorem_handle.into() as u64,
             &mut result as *mut u64,
         )
     };

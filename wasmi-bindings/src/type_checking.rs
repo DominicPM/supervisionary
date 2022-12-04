@@ -1152,6 +1152,18 @@ pub(crate) fn check_theorem_register_exists_elimination_signature(
     unimplemented!()
 }
 
+/// Checks the signature of the `Theorem.Register.EpsilonElimination` ABI function.
+#[inline]
+pub(crate) fn check_theorem_register_epsilon_elimination_signature(
+    signature: &Signature,
+) -> bool {
+    check_signature(
+        signature,
+        &[AbiType::Handle, AbiType::Pointer],
+        &Some(AbiType::ErrorCode),
+    )
+}
+
 /// Checks the signature of the `Theorem.Split.Conclusion` ABI function.
 #[inline]
 pub(crate) fn check_theorem_split_conclusion_signature(

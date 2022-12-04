@@ -24,31 +24,34 @@ use std::{convert::TryFrom, marker::PhantomData};
 
 /// A pre-allocated handle used to refer to the truth constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_TRUE: Handle<tags::Constant> =
-    Handle::new(10usize, PhantomData);
+    Handle::new(11usize, PhantomData);
 /// A pre-allocated handle used to refer to the falsity constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_FALSE: Handle<tags::Constant> =
-    Handle::new(11usize, PhantomData);
+    Handle::new(12usize, PhantomData);
 /// A pre-allocated handle used to refer to the negation constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_NEGATION: Handle<tags::Constant> =
-    Handle::new(12usize, PhantomData);
+    Handle::new(13usize, PhantomData);
 /// A pre-allocated handle used to refer to the binary conjunction connective.
 pub const PREALLOCATED_HANDLE_CONSTANT_CONJUNCTION: Handle<tags::Constant> =
-    Handle::new(13usize, PhantomData);
+    Handle::new(14usize, PhantomData);
 /// A pre-allocated handle used to refer to the binary disjunction connective.
 pub const PREALLOCATED_HANDLE_CONSTANT_DISJUNCTION: Handle<tags::Constant> =
-    Handle::new(14usize, PhantomData);
+    Handle::new(15usize, PhantomData);
 /// A pre-allocated handle used to refer to the binary implication connective.
 pub const PREALLOCATED_HANDLE_CONSTANT_IMPLICATION: Handle<tags::Constant> =
-    Handle::new(15usize, PhantomData);
+    Handle::new(16usize, PhantomData);
 /// A pre-allocated handle used to refer to the universal quantifier constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_FORALL: Handle<tags::Constant> =
-    Handle::new(16usize, PhantomData);
-/// A pre-allocated handle used to refer to the existential quantifier constant.
-pub const PREALLOCATED_HANDLE_CONSTANT_EXISTS: Handle<tags::Constant> =
     Handle::new(17usize, PhantomData);
+/// A pre-allocated hand7e used to refer to the existential quantifier constant.
+pub const PREALLOCATED_HANDLE_CONSTANT_EXISTS: Handle<tags::Constant> =
+    Handle::new(18usize, PhantomData);
 /// A pre-allocated handle used to refer to the equality constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_EQUALITY: Handle<tags::Constant> =
-    Handle::new(18usize, PhantomData);
+    Handle::new(19usize, PhantomData);
+/// A pre-allocated handle used to refer to the Hilbert epsilon constant.
+pub const PREALLOCATED_HANDLE_CONSTANT_HILBERT_EPSILON: Handle<tags::Constant> =
+    Handle::new(20usize, PhantomData);
 
 ////////////////////////////////////////////////////////////////////////////////
 // ABI bindings.

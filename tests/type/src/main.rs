@@ -40,6 +40,9 @@ fn main() {
         PREALLOCATED_HANDLE_TYPE_UNARY_CONNECTIVE
     ));
     assert!(type_is_registered(PREALLOCATED_HANDLE_TYPE_UNARY_PREDICATE));
+    assert!(type_is_registered(
+        PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE
+    ));
 
     assert_eq!(type_test_variable(PREALLOCATED_HANDLE_TYPE_ALPHA), Ok(true));
     assert_eq!(type_test_variable(PREALLOCATED_HANDLE_TYPE_BETA), Ok(true));
@@ -62,6 +65,10 @@ fn main() {
     );
     assert_eq!(
         type_test_function(PREALLOCATED_HANDLE_TYPE_UNARY_CONNECTIVE),
+        Ok(true)
+    );
+    assert_eq!(
+        type_test_function(PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE),
         Ok(true)
     );
 
@@ -125,6 +132,13 @@ fn main() {
         type_split_function(PREALLOCATED_HANDLE_TYPE_UNARY_CONNECTIVE),
         Ok((PREALLOCATED_HANDLE_TYPE_PROP, PREALLOCATED_HANDLE_TYPE_PROP))
     );
+    assert_eq!(
+        type_split_function(PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE),
+        Ok((
+            PREALLOCATED_HANDLE_TYPE_UNARY_PREDICATE,
+            PREALLOCATED_HANDLE_TYPE_ALPHA
+        ))
+    );
 
     assert_eq!(type_size(PREALLOCATED_HANDLE_TYPE_ALPHA), Ok(1));
     assert_eq!(type_size(PREALLOCATED_HANDLE_TYPE_BETA), Ok(1));
@@ -134,6 +148,7 @@ fn main() {
     assert_eq!(type_size(PREALLOCATED_HANDLE_TYPE_QUANTIFIER), Ok(5));
     assert_eq!(type_size(PREALLOCATED_HANDLE_TYPE_UNARY_CONNECTIVE), Ok(3));
     assert_eq!(type_size(PREALLOCATED_HANDLE_TYPE_UNARY_PREDICATE), Ok(3));
+    assert_eq!(type_size(PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE), Ok(5));
 
     assert_eq!(
         type_split_combination(PREALLOCATED_HANDLE_TYPE_PROP),
@@ -218,6 +233,10 @@ fn main() {
     assert_eq!(
         type_variables(PREALLOCATED_HANDLE_TYPE_UNARY_CONNECTIVE),
         Ok(HashSet::new())
+    );
+    assert_eq!(
+        type_variables(PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE),
+        Ok(HashSet::from_iter(vec![0]))
     );
 
     assert_eq!(

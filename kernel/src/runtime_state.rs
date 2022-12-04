@@ -23,12 +23,12 @@
 //! [Nick Spinale]<https://nickspinale.com>
 //! [Arm Research]<http://www.arm.com/research>
 
-use crate::handle::PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION;
 use crate::{
     _type::{
         Type, TYPE_ALPHA, TYPE_BETA, TYPE_BINARY_CONNECTIVE,
-        TYPE_POLYMORPHIC_BINARY_PREDICATE, TYPE_POLYMORPHIC_QUANTIFIER,
-        TYPE_POLYMORPHIC_UNARY_PREDICATE, TYPE_PROP, TYPE_UNARY_CONNECTIVE,
+        TYPE_CHOICE_PRINCIPLE, TYPE_POLYMORPHIC_BINARY_PREDICATE,
+        TYPE_POLYMORPHIC_QUANTIFIER, TYPE_POLYMORPHIC_UNARY_PREDICATE,
+        TYPE_PROP, TYPE_UNARY_CONNECTIVE,
     },
     error_code::ErrorCode,
     handle::{
@@ -38,6 +38,7 @@ use crate::{
         PREALLOCATED_HANDLE_CONSTANT_EXISTS,
         PREALLOCATED_HANDLE_CONSTANT_FALSE,
         PREALLOCATED_HANDLE_CONSTANT_FORALL,
+        PREALLOCATED_HANDLE_CONSTANT_HILBERT_EPSILON,
         PREALLOCATED_HANDLE_CONSTANT_IMPLICATION,
         PREALLOCATED_HANDLE_CONSTANT_NEGATION,
         PREALLOCATED_HANDLE_CONSTANT_TRUE,
@@ -45,11 +46,14 @@ use crate::{
         PREALLOCATED_HANDLE_TERM_DISJUNCTION,
         PREALLOCATED_HANDLE_TERM_EQUALITY, PREALLOCATED_HANDLE_TERM_EXISTS,
         PREALLOCATED_HANDLE_TERM_FALSE, PREALLOCATED_HANDLE_TERM_FORALL,
+        PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON,
         PREALLOCATED_HANDLE_TERM_IMPLICATION,
         PREALLOCATED_HANDLE_TERM_NEGATION, PREALLOCATED_HANDLE_TERM_TRUE,
+        PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION,
         PREALLOCATED_HANDLE_TYPE_ALPHA, PREALLOCATED_HANDLE_TYPE_BETA,
         PREALLOCATED_HANDLE_TYPE_BINARY_CONNECTIVE,
         PREALLOCATED_HANDLE_TYPE_BINARY_PREDICATE,
+        PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE,
         PREALLOCATED_HANDLE_TYPE_FORMER_ARROW,
         PREALLOCATED_HANDLE_TYPE_FORMER_PROP, PREALLOCATED_HANDLE_TYPE_PROP,
         PREALLOCATED_HANDLE_TYPE_QUANTIFIER,
@@ -65,7 +69,7 @@ use crate::{
     term::{
         Term, TERM_CONJUNCTION_CONSTANT, TERM_DISJUNCTION_CONSTANT,
         TERM_EQUALITY_CONSTANT, TERM_EXISTS_CONSTANT, TERM_FALSE_CONSTANT,
-        TERM_FORALL_CONSTANT, TERM_IMPLICATION_CONSTANT,
+        TERM_FORALL_CONSTANT, TERM_HILBERT_EPSILON, TERM_IMPLICATION_CONSTANT,
         TERM_NEGATION_CONSTANT, TERM_TRUE_CONSTANT,
     },
     theorem::Theorem,
@@ -4065,8 +4069,8 @@ impl RuntimeState {
 
         let thm = self
             .resolve_theorem_handle(handle)
-            .ok_or(ErrorCode::NoSuchTheoremRegistered)
-            .clone()?;
+            .ok_or(ErrorCode::NoSuchTheoremRegistered)?
+            .clone();
 
         if !self.type_is_registered(&tau) {
             return Err(ErrorCode::NoSuchTypeRegistered);
@@ -4085,9 +4089,6 @@ impl RuntimeState {
             }
         }
 
-        // NB: satisfy the borrow checker.
-        let thm = thm.clone();
-
         // NB: this should not fail as by this point we know everything is
         // registered, and there is no type-checking needed, neither.
         let conclusion = self
@@ -4096,6 +4097,57 @@ impl RuntimeState {
 
         Ok(self
             .admit_theorem(Theorem::new(thm.premisses().clone(), conclusion)))
+    }
+
+    /// Registers a new theorem object, `Γ ⊢ ɸ (ε ɸ)`, iff `handle` points-to a
+    /// theorem `Γ ⊢ ∃x:τ. ɸ` registered in the kernel's theorem-table.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(ErrorCode::NoSuchTheoremRegistered)` if `thm` does not
+    /// point-to a registered theorem in the runtime state's theorem-table.
+    ///
+    /// Returns `Err(ErrorCode::ShapeMismatch)` if `handle` does not point-to an
+    /// existential theorem in the kernel's theorem-table.
+    pub fn theorem_register_epsilon_elimination<T>(
+        &mut self,
+        handle: T,
+    ) -> Result<Handle<tags::Theorem>, ErrorCode>
+    where
+        T: Borrow<Handle<tags::Theorem>>,
+    {
+        info!("Eliminating epsilon: {:?}.", handle.borrow());
+
+        let thm = self
+            .resolve_theorem_handle(handle)
+            .ok_or(ErrorCode::NoSuchTheoremRegistered)?
+            .clone();
+
+        let (_name, typ, body) = self
+            .term_split_exists(thm.conclusion())
+            .map_err(|_e| ErrorCode::ShapeMismatch)?;
+
+        let typ = typ.clone();
+        let body = body.clone();
+
+        /* NB: this should not fail as everything is resolved by this point. */
+        let eps = self
+            .term_type_substitute(
+                PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON,
+                vec![(0u64, typ)],
+            )
+            .expect(DANGLING_HANDLE_ERROR);
+
+        let inner = self
+            .term_register_application(eps, body.clone())
+            .expect(PRIMITIVE_CONSTRUCTION_ERROR);
+        let conclusion = self
+            .term_register_application(body, inner)
+            .expect(PRIMITIVE_CONSTRUCTION_ERROR);
+
+        let premisses = thm.premisses().clone();
+
+        Ok(self.admit_theorem(Theorem::new(premisses, conclusion)))
     }
 
     pub fn theorem_register_exists_introduction<T, U>(
@@ -4198,6 +4250,10 @@ impl Default for RuntimeState {
                 PREALLOCATED_HANDLE_TYPE_QUANTIFIER,
                 TYPE_POLYMORPHIC_QUANTIFIER.clone(),
             ),
+            (
+                PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE,
+                TYPE_CHOICE_PRINCIPLE.clone(),
+            ),
         ]);
 
         let constants = HashMap::from_iter(vec![
@@ -4237,6 +4293,10 @@ impl Default for RuntimeState {
                 PREALLOCATED_HANDLE_CONSTANT_EXISTS,
                 PREALLOCATED_HANDLE_TYPE_QUANTIFIER,
             ),
+            (
+                PREALLOCATED_HANDLE_CONSTANT_HILBERT_EPSILON,
+                PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE,
+            ),
         ]);
 
         let terms = HashMap::from_iter(vec![
@@ -4258,6 +4318,10 @@ impl Default for RuntimeState {
                 TERM_DISJUNCTION_CONSTANT,
             ),
             (PREALLOCATED_HANDLE_TERM_EQUALITY, TERM_EQUALITY_CONSTANT),
+            (
+                PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON,
+                TERM_HILBERT_EPSILON,
+            ),
         ]);
 
         let empty_prems: Vec<Handle<tags::Term>> = Vec::new();
