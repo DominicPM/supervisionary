@@ -49,6 +49,9 @@ pub const PREALLOCATED_HANDLE_TYPE_BINARY_CONNECTIVE: Handle<tags::Type> =
 /// A pre-allocated handle used to refer to the type of polymorphic quantifiers.
 pub const PREALLOCATED_HANDLE_TYPE_QUANTIFIER: Handle<tags::Type> =
     Handle::new(9usize, PhantomData);
+/// A pre-allocated handle used to refer to the type of choice principles.
+pub const PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE: Handle<tags::Type> =
+    Handle::new(10usize, PhantomData);
 
 ////////////////////////////////////////////////////////////////////////////////
 // ABI bindings.

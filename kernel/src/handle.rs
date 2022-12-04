@@ -97,7 +97,7 @@ where
 }
 
 /// The upper-bound (exclusive) of the preallocated handles.
-pub const PREALLOCATED_HANDLE_UPPER_BOUND: usize = 29;
+pub const PREALLOCATED_HANDLE_UPPER_BOUND: usize = 32;
 
 /// Returns `true` iff the handle is a pre-allocated handle built into the
 /// kernel.
@@ -169,117 +169,136 @@ pub const PREALLOCATED_HANDLE_TYPE_QUANTIFIER: Handle<tags::Type> = Handle {
     handle: 9,
     marker: PhantomData,
 };
+/// A pre-allocated handle used to refer to the type of choice principles.
+pub const PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE: Handle<tags::Type> =
+    Handle {
+        handle: 10,
+        marker: PhantomData,
+    };
 /// A pre-allocated handle used to refer to the truth constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_TRUE: Handle<tags::Constant> = Handle {
-    handle: 10,
+    handle: 11,
     marker: PhantomData,
 };
 /// A pre-allocated handle used to refer to the falsity constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_FALSE: Handle<tags::Constant> = Handle {
-    handle: 11,
+    handle: 12,
     marker: PhantomData,
 };
 /// A pre-allocated handle used to refer to the negation constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_NEGATION: Handle<tags::Constant> =
     Handle {
-        handle: 12,
+        handle: 13,
         marker: PhantomData,
     };
 /// A pre-allocated handle used to refer to the binary conjunction connective.
 pub const PREALLOCATED_HANDLE_CONSTANT_CONJUNCTION: Handle<tags::Constant> =
     Handle {
-        handle: 13,
+        handle: 14,
         marker: PhantomData,
     };
 /// A pre-allocated handle used to refer to the binary disjunction connective.
 pub const PREALLOCATED_HANDLE_CONSTANT_DISJUNCTION: Handle<tags::Constant> =
     Handle {
-        handle: 14,
+        handle: 15,
         marker: PhantomData,
     };
 /// A pre-allocated handle used to refer to the binary implication connective.
 pub const PREALLOCATED_HANDLE_CONSTANT_IMPLICATION: Handle<tags::Constant> =
     Handle {
-        handle: 15,
+        handle: 16,
         marker: PhantomData,
     };
 /// A pre-allocated handle used to refer to the universal quantifier constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_FORALL: Handle<tags::Constant> =
     Handle {
-        handle: 16,
+        handle: 17,
         marker: PhantomData,
     };
 /// A pre-allocated handle used to refer to the existential quantifier constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_EXISTS: Handle<tags::Constant> =
     Handle {
-        handle: 17,
+        handle: 18,
         marker: PhantomData,
     };
 /// A pre-allocated handle used to refer to the equality constant.
 pub const PREALLOCATED_HANDLE_CONSTANT_EQUALITY: Handle<tags::Constant> =
     Handle {
-        handle: 18,
+        handle: 19,
+        marker: PhantomData,
+    };
+/// A pre-allocated handle used to refer to the Hilbert epsilon constant.
+pub const PREALLOCATED_HANDLE_CONSTANT_HILBERT_EPSILON: Handle<tags::Constant> =
+    Handle {
+        handle: 20,
         marker: PhantomData,
     };
 /// A pre-allocated handle used to refer to the truth term, the truth constant
 /// lifted into a term.
 pub const PREALLOCATED_HANDLE_TERM_TRUE: Handle<tags::Term> = Handle {
-    handle: 19,
+    handle: 21,
     marker: PhantomData,
 };
 /// A pre-allocated handle used to refer to the falsity term, the falsity
 /// constant lifted into a term.
 pub const PREALLOCATED_HANDLE_TERM_FALSE: Handle<tags::Term> = Handle {
-    handle: 20,
+    handle: 22,
     marker: PhantomData,
 };
 /// A pre-allocated handle used to refer to the negation term, the negation
 /// constant lifted into a term.
 pub const PREALLOCATED_HANDLE_TERM_NEGATION: Handle<tags::Term> = Handle {
-    handle: 21,
+    handle: 23,
     marker: PhantomData,
 };
 /// A pre-allocated handle used to refer to the conjunction term, the
 /// conjunction constant lifted into a term.
 pub const PREALLOCATED_HANDLE_TERM_CONJUNCTION: Handle<tags::Term> = Handle {
-    handle: 22,
+    handle: 24,
     marker: PhantomData,
 };
 /// A pre-allocated handle used to refer to the disjunction term, the
 /// disjunction constant lifted into a term.
 pub const PREALLOCATED_HANDLE_TERM_DISJUNCTION: Handle<tags::Term> = Handle {
-    handle: 23,
+    handle: 25,
     marker: PhantomData,
 };
 /// A pre-allocated handle used to refer to the implication term, the
 /// implication constant lifted into a term.
 pub const PREALLOCATED_HANDLE_TERM_IMPLICATION: Handle<tags::Term> = Handle {
-    handle: 24,
+    handle: 26,
     marker: PhantomData,
 };
 /// A pre-allocated handle used to refer to the equality term, the equality
 /// constant lifted into a term.
 pub const PREALLOCATED_HANDLE_TERM_EQUALITY: Handle<tags::Term> = Handle {
-    handle: 25,
+    handle: 27,
     marker: PhantomData,
 };
 /// A pre-allocated handle used to refer to the universal quantifier term, the
 /// universal quantifier constant lifted into a term.
 pub const PREALLOCATED_HANDLE_TERM_FORALL: Handle<tags::Term> = Handle {
-    handle: 26,
+    handle: 28,
     marker: PhantomData,
 };
 /// A pre-allocated handle used to refer to the existential quantifier term, the
 /// existential quantifier constant lifted into a term.
 pub const PREALLOCATED_HANDLE_TERM_EXISTS: Handle<tags::Term> = Handle {
-    handle: 27,
+    handle: 29,
     marker: PhantomData,
 };
+/// A pre-allocated handle used to refer to the Hilbert epsilon term, the
+/// epsilon constant lifted into a term.
+pub const PREALLOCATED_HANDLE_TERM_HILBERT_EPSILON: Handle<tags::Term> =
+    Handle {
+        handle: 30,
+        marker: PhantomData,
+    };
 /// A pre-allocated handle used to refer to the truth introduction theorem.
 pub const PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION: Handle<
     tags::Theorem,
 > = Handle {
-    handle: 28,
+    handle: 31,
     marker: PhantomData,
 };
 

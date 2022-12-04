@@ -15,6 +15,7 @@ use libsupervisionary::raw::{
     _type::{
         PREALLOCATED_HANDLE_TYPE_BINARY_CONNECTIVE,
         PREALLOCATED_HANDLE_TYPE_BINARY_PREDICATE,
+        PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE,
         PREALLOCATED_HANDLE_TYPE_PROP, PREALLOCATED_HANDLE_TYPE_QUANTIFIER,
         PREALLOCATED_HANDLE_TYPE_UNARY_CONNECTIVE,
     },
@@ -32,6 +33,9 @@ fn main() {
         PREALLOCATED_HANDLE_CONSTANT_EQUALITY
     ));
     assert!(constant_is_registered(PREALLOCATED_HANDLE_CONSTANT_EXISTS));
+    assert!(constant_is_registered(
+        PREALLOCATED_HANDLE_CONSTANT_HILBERT_EPSILON
+    ));
     assert!(constant_is_registered(PREALLOCATED_HANDLE_CONSTANT_FALSE));
     assert!(constant_is_registered(PREALLOCATED_HANDLE_CONSTANT_FORALL));
     assert!(constant_is_registered(
@@ -57,6 +61,10 @@ fn main() {
     assert_eq!(
         constant_resolve(PREALLOCATED_HANDLE_CONSTANT_EXISTS),
         Ok(PREALLOCATED_HANDLE_TYPE_QUANTIFIER)
+    );
+    assert_eq!(
+        constant_resolve(PREALLOCATED_HANDLE_CONSTANT_HILBERT_EPSILON),
+        Ok(PREALLOCATED_HANDLE_TYPE_CHOICE_PRINCIPLE)
     );
     assert_eq!(
         constant_resolve(PREALLOCATED_HANDLE_CONSTANT_FALSE),

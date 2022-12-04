@@ -244,6 +244,15 @@ lazy_static! {
             PREALLOCATED_HANDLE_TYPE_PROP,
         ],
     };
+
+    /// The type of polymorphic choice principles, `(A -> Prop) -> A`.
+    pub static ref TYPE_CHOICE_PRINCIPLE: Type = Type::Combination {
+        former: PREALLOCATED_HANDLE_TYPE_FORMER_ARROW,
+        arguments: vec![
+            PREALLOCATED_HANDLE_TYPE_UNARY_PREDICATE,
+            PREALLOCATED_HANDLE_TYPE_ALPHA,
+        ],
+    };
 }
 
 ////////////////////////////////////////////////////////////////////////////////

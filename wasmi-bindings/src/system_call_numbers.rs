@@ -411,6 +411,9 @@ pub(crate) const ABI_THEOREM_REGISTER_EXISTS_INTRODUCTION_NAME: &str =
 /// The name of the `Theorem.Register.ExistsElimination` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_EXISTS_ELIMINATION_NAME: &str =
     "__theorem_register_exists_elimination";
+/// The name of the `Theorem.Register.EpsilonElimination` ABI call.
+pub(crate) const ABI_THEOREM_REGISTER_EPSILON_ELIMINATION_NAME: &str =
+    "__theorem_register_epsilon_elimination";
 
 /// The name of the `Theorem.Split.Hypotheses` ABI call.
 pub(crate) const ABI_THEOREM_SPLIT_HYPOTHESES_NAME: &str =
@@ -496,11 +499,13 @@ pub(crate) const ABI_THEOREM_REGISTER_FORALL_ELIMINATION_INDEX: usize = 87;
 pub(crate) const ABI_THEOREM_REGISTER_EXISTS_INTRODUCTION_INDEX: usize = 88;
 /// The index of the `Theorem.Register.ExistsElimination` ABI call.
 pub(crate) const ABI_THEOREM_REGISTER_EXISTS_ELIMINATION_INDEX: usize = 89;
+/// The index of the `Theorem.Register.EpsilonElimination` ABI call.
+pub(crate) const ABI_THEOREM_REGISTER_EPSILON_ELIMINATION_INDEX: usize = 90;
 
 /// The index of the `Theorem.Split.Hypotheses` ABI call.
-pub(crate) const ABI_THEOREM_SPLIT_HYPOTHESES_INDEX: usize = 90;
+pub(crate) const ABI_THEOREM_SPLIT_HYPOTHESES_INDEX: usize = 91;
 /// The index of the `Theorem.Split.Conclusion` ABI call.
-pub(crate) const ABI_THEOREM_SPLIT_CONCLUSION_INDEX: usize = 91;
+pub(crate) const ABI_THEOREM_SPLIT_CONCLUSION_INDEX: usize = 92;
 
 ////////////////////////////////////////////////////////////////////////////////
 // System access system calls.
@@ -513,6 +518,6 @@ pub(crate) const ABI_SYSTEM_IO_WRITE_ERROR_NAME: &str =
     "__system_io_write_error";
 
 /// The index of the `System.IO.Write` ABI call.
-pub(crate) const ABI_SYSTEM_IO_WRITE_INDEX: usize = 92;
+pub(crate) const ABI_SYSTEM_IO_WRITE_INDEX: usize = 93;
 /// The index of the `System.IO.WriteError` ABI call.
-pub(crate) const ABI_SYSTEM_IO_WRITE_ERROR_INDEX: usize = 93;
+pub(crate) const ABI_SYSTEM_IO_WRITE_ERROR_INDEX: usize = 94;
