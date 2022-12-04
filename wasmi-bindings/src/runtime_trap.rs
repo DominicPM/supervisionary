@@ -45,7 +45,7 @@ impl Display for RuntimeTrap {
     fn fmt(&self, f: &mut Formatter) -> Result<(), DisplayError> {
         match self {
             RuntimeTrap::NoSuchFunction(opcode) => {
-                write!(f, "NoSuchFunction: {}", opcode)
+                write!(f, "NoSuchFunction: {opcode}")
             }
             RuntimeTrap::SignatureFailure => write!(f, "SignatureFailure"),
             RuntimeTrap::MemoryNotRegistered => {
