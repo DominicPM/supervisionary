@@ -32,7 +32,7 @@ args          = ["fmt"]
 description   = "Generates rustdoc documentation from the constant tests source code."
 install_crate = "rustdoc"
 command       = "cargo"
-args          = ["doc"]
+args          = ["doc", "--no-deps"]
 
 [tasks.all]
 description  = "Build, lint, format, and test the Supervisionary constant tests"
