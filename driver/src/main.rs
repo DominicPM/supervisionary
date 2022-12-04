@@ -109,14 +109,14 @@ where
     info!("Loading Wasm binary {:?}.", path.as_ref());
 
     let mut file = File::open(path).unwrap_or_else(|e| {
-        eprintln!("Failed to open Wasm binary.  Error produced: {}.", e);
+        eprintln!("Failed to open Wasm binary.  Error produced: {e}.");
         exit(1);
     });
 
     let mut content = Vec::new();
 
     if let Err(err) = file.read_to_end(&mut content) {
-        eprintln!("Could not read Wasm binary file to completion.  Error produced: {}.", err);
+        eprintln!("Could not read Wasm binary file to completion.  Error produced: {err}.");
         exit(1);
     }
 
@@ -132,8 +132,7 @@ fn get_module_memory(module: &ModuleRef) -> MemoryRef {
         Some(ExternVal::Memory(memory)) => memory,
         _otherwise => {
             eprintln!(
-                "Wasm module does not export any memory with name {}.",
-                LINEAR_MEMORY_NAME
+                "Wasm module does not export any memory with name {LINEAR_MEMORY_NAME}."
             );
             exit(1)
         }
@@ -154,7 +153,7 @@ fn main() {
     let binary = load_binary(command_line_args.wasm_binary_path);
 
     let loaded_module = Module::from_buffer(binary).unwrap_or_else(|e| {
-        eprintln!("Failed to load Wasm module.  Error produced: {}.", e);
+        eprintln!("Failed to load Wasm module.  Error produced: {e}.");
         exit(1);
     });
 
@@ -176,7 +175,7 @@ fn main() {
         &imports_resolver,
     )
     .unwrap_or_else(|e| {
-        eprintln!("Failed to build module instance.  Error produced: {}.", e);
+        eprintln!("Failed to build module instance.  Error produced: {e}.");
         exit(1);
     });
 
@@ -208,8 +207,7 @@ fn main() {
         )
         .unwrap_or_else(|e| {
             eprintln!(
-                "Failed to invoke '{}' function.  Error produced: {}.",
-                WASM_ENTRY_POINT, e
+                "Failed to invoke '{WASM_ENTRY_POINT}' function.  Error produced: {e}.",
             );
             exit(1)
         });
@@ -217,8 +215,7 @@ fn main() {
     match return_value {
         Some(value) => {
             println!(
-                "Wasm module executed successfully.  Returned value {:?}.",
-                value
+                "Wasm module executed successfully.  Returned value {value:?}.",
             );
         }
         None => {

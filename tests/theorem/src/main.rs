@@ -15,8 +15,7 @@ use libsupervisionary::raw::{system::system_io_write, theorem::*, ErrorCode};
 
 fn main() -> Result<(), ErrorCode> {
     system_io_write(format!(
-        "PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION: {:?}\n",
-        PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION
+        "PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION: {PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION:?}\n",
     ))?;
 
     Ok(())
