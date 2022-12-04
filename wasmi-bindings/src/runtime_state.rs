@@ -140,10 +140,10 @@ use crate::{
         ABI_THEOREM_REGISTER_SYMMETRY_NAME,
         ABI_THEOREM_REGISTER_TRANSITIVITY_INDEX,
         ABI_THEOREM_REGISTER_TRANSITIVITY_NAME,
-        ABI_THEOREM_REGISTER_TRUTH_INTRODUCTION_INDEX,
-        ABI_THEOREM_REGISTER_TRUTH_INTRODUCTION_NAME,
         ABI_THEOREM_REGISTER_TYPE_SUBSTITUTE_INDEX,
         ABI_THEOREM_REGISTER_TYPE_SUBSTITUTE_NAME,
+        ABI_THEOREM_REGISTER_WEAKEN_INDEX, ABI_THEOREM_REGISTER_WEAKEN_NAME,
+        ABI_THEOREM_SIZE_INDEX, ABI_THEOREM_SIZE_NAME,
         ABI_THEOREM_SPLIT_CONCLUSION_INDEX, ABI_THEOREM_SPLIT_CONCLUSION_NAME,
         ABI_THEOREM_SPLIT_HYPOTHESES_INDEX, ABI_THEOREM_SPLIT_HYPOTHESES_NAME,
         ABI_TYPE_FORMER_IS_REGISTERED_INDEX,
@@ -1351,6 +1351,31 @@ impl WasmiRuntimeState {
         self.kernel.borrow().theorem_is_registered(handle)
     }
 
+    /// Lifting of the `theorem_size` function.
+    #[inline]
+    fn theorem_size<T>(&self, theorem_handle: T) -> Result<u64, KernelErrorCode>
+    where
+        T: Borrow<Handle<tags::Theorem>>,
+    {
+        self.kernel.borrow().theorem_size(theorem_handle)
+    }
+
+    /// Lifting of the `theorem_register_weaken` function.
+    #[inline]
+    fn theorem_register_weaken<T, U>(
+        &self,
+        term_handle: T,
+        theorem_handle: U,
+    ) -> Result<Handle<tags::Theorem>, KernelErrorCode>
+    where
+        T: Into<Handle<tags::Term>> + Clone,
+        U: Into<Handle<tags::Theorem>> + Clone,
+    {
+        self.kernel
+            .borrow_mut()
+            .theorem_register_weaken(term_handle, theorem_handle)
+    }
+
     /// Lifting of the `theorem_register_assumption` function.
     #[inline]
     fn theorem_register_assumption<T>(
@@ -1500,16 +1525,6 @@ impl WasmiRuntimeState {
             type_handle,
             body_handle,
         )
-    }
-
-    /// Lifting of the `theorem_register_truth_introduction` function.
-    #[inline]
-    fn theorem_register_truth_introduction(
-        &self,
-    ) -> Result<Handle<tags::Theorem>, KernelErrorCode> {
-        self.kernel
-            .borrow_mut()
-            .theorem_register_truth_introduction()
     }
 
     /// Lifting of the `theorem_register_falsity_elimination` function.
@@ -3002,6 +3017,44 @@ impl Externals for WasmiRuntimeState {
                     }
                 }
             }
+            ABI_THEOREM_SIZE_INDEX => {
+                let theorem_handle: Handle<tags::Theorem> = Handle::from(
+                    args.nth::<semantic_types::Handle>(0) as usize,
+                );
+                let result_ptr = args.nth::<semantic_types::Pointer>(1);
+
+                match self.theorem_size(theorem_handle) {
+                    Err(e) => Ok(Some(RuntimeValue::I32(e as i32))),
+                    Ok(result) => {
+                        self.write_u64(result_ptr, result)?;
+
+                        Ok(Some(RuntimeValue::I32(
+                            KernelErrorCode::Success.into(),
+                        )))
+                    }
+                }
+            }
+            ABI_THEOREM_REGISTER_WEAKEN_INDEX => {
+                let term_handle: Handle<tags::Term> = Handle::from(
+                    args.nth::<semantic_types::Handle>(0) as usize,
+                );
+                let theorem_handle: Handle<tags::Theorem> = Handle::from(
+                    args.nth::<semantic_types::Handle>(1) as usize,
+                );
+                let result_ptr = args.nth::<semantic_types::Pointer>(2);
+
+                match self.theorem_register_weaken(term_handle, theorem_handle)
+                {
+                    Err(e) => Ok(Some(RuntimeValue::I32(e as i32))),
+                    Ok(result) => {
+                        self.write_handle(result_ptr, result)?;
+
+                        Ok(Some(RuntimeValue::I32(
+                            KernelErrorCode::Success.into(),
+                        )))
+                    }
+                }
+            }
             ABI_THEOREM_REGISTER_ASSUMPTION_INDEX => {
                 let term_handle: Handle<tags::Term> = Handle::from(
                     args.nth::<semantic_types::Handle>(0) as usize,
@@ -3209,20 +3262,6 @@ impl Externals for WasmiRuntimeState {
                 match self
                     .theorem_register_type_substitute(theorem_handle, subst)
                 {
-                    Err(e) => Ok(Some(RuntimeValue::I32(e as i32))),
-                    Ok(result) => {
-                        self.write_handle(result_ptr, result)?;
-
-                        Ok(Some(RuntimeValue::I32(
-                            KernelErrorCode::Success.into(),
-                        )))
-                    }
-                }
-            }
-            ABI_THEOREM_REGISTER_TRUTH_INTRODUCTION_INDEX => {
-                let result_ptr = args.nth::<semantic_types::Pointer>(0);
-
-                match self.theorem_register_truth_introduction() {
                     Err(e) => Ok(Some(RuntimeValue::I32(e as i32))),
                     Ok(result) => {
                         self.write_handle(result_ptr, result)?;
@@ -3639,9 +3678,9 @@ impl Externals for WasmiRuntimeState {
 
                 Ok(Some(RuntimeValue::I32(KernelErrorCode::Success.into())))
             }
-            _otherwise => {
-                Err(runtime_trap::host_trap(RuntimeTrap::NoSuchFunction))
-            }
+            otherwise => Err(runtime_trap::host_trap(
+                RuntimeTrap::NoSuchFunction(otherwise),
+            )),
         }
     }
 }
@@ -4586,6 +4625,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_is_registered_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_is_registered.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4600,6 +4641,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_assumption_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_assumption.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4614,6 +4657,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_reflexivity_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_reflexivity.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4628,6 +4673,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_symmetry_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_symmetry.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4642,6 +4689,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_transitivity_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_transitivity.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4656,6 +4705,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_application_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_application.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4670,6 +4721,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_lambda_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_lambda.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4684,6 +4737,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_beta_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_beta.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4698,6 +4753,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_eta_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_eta.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4712,6 +4769,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_substitute_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_substitute.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4726,6 +4785,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_type_substitute_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_type_substitute.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4736,24 +4797,12 @@ impl ModuleImportResolver for WasmiRuntimeState {
                     ABI_THEOREM_REGISTER_TYPE_SUBSTITUTE_INDEX,
                 ))
             }
-            ABI_THEOREM_REGISTER_TRUTH_INTRODUCTION_NAME => {
-                if !type_checking::check_theorem_register_truth_introduction_signature(
-                    signature,
-                ) {
-                    return Err(WasmiError::Trap(runtime_trap::host_trap(
-                        RuntimeTrap::SignatureFailure,
-                    )));
-                }
-
-                Ok(FuncInstance::alloc_host(
-                    signature.clone(),
-                    ABI_THEOREM_REGISTER_TRUTH_INTRODUCTION_INDEX,
-                ))
-            }
             ABI_THEOREM_REGISTER_FALSITY_ELIMINATION_NAME => {
                 if !type_checking::check_theorem_register_falsity_elimination_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_falsity_elimination.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4768,6 +4817,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_conjunction_introduction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_conjunction_introduction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4780,6 +4831,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_THEOREM_REGISTER_CONJUNCTION_LEFT_ELIMINATION_NAME => {
                 if !type_checking::check_theorem_register_conjunction_left_elimination_signature(signature) {
+                    error!("Signature check failed when checking __theorem_register_conjunction_left_elimination.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(
                         runtime_trap::host_trap(RuntimeTrap::SignatureFailure)));
                 }
@@ -4791,6 +4844,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_THEOREM_REGISTER_CONJUNCTION_RIGHT_ELIMINATION_NAME => {
                 if !type_checking::check_theorem_register_conjunction_right_elimination_signature(signature) {
+                    error!("Signature check failed when checking __theorem_register_conjunction_right_elimination.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(
                         runtime_trap::host_trap(RuntimeTrap::SignatureFailure)));
                 }
@@ -4804,6 +4859,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_disjunction_elimination_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_disjunction_elimination.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4816,6 +4873,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_THEOREM_REGISTER_DISJUNCTION_LEFT_INTRODUCTION_NAME => {
                 if !type_checking::check_theorem_register_disjunction_left_introduction_signature(signature) {
+                    error!("Signature check failed when checking __theorem_register_disjunction_left_introduction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(
                         runtime_trap::host_trap(RuntimeTrap::SignatureFailure)));
                 }
@@ -4827,6 +4886,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             }
             ABI_THEOREM_REGISTER_DISJUNCTION_RIGHT_INTRODUCTION_NAME => {
                 if !type_checking::check_theorem_register_disjunction_right_introduction_signature(signature) {
+                    error!("Signature check failed when checking __theorem_register_disjunction_right_introduction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(
                         runtime_trap::host_trap(RuntimeTrap::SignatureFailure)));
                 }
@@ -4840,6 +4901,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_implication_introduction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_implication_introduction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4854,6 +4917,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_implication_elimination_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_implication_elimination.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4867,6 +4932,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
             ABI_THEOREM_REGISTER_IFF_INTRODUCTION_NAME => {
                 if !type_checking::check_theorem_register_iff_introduction_signature(signature)
                 {
+                    error!("Signature check failed when checking __theorem_register_iff_introduction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4881,6 +4948,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_iff_left_elimination_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_iff_left_elimination.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4895,6 +4964,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_negation_introduction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_negation_introduction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4909,6 +4980,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_negation_elimination_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_negation_elimination.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4923,6 +4996,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_forall_introduction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_forall_introduction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4937,6 +5012,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_forall_elimination_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_forall_elimination.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4951,6 +5028,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_exists_elimination_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_exists_elimination.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4965,6 +5044,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_register_exists_introduction_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_register_exists_introduction.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4979,6 +5060,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_split_conclusion_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_split_conclusion.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -4993,6 +5076,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 if !type_checking::check_theorem_split_hypotheses_signature(
                     signature,
                 ) {
+                    error!("Signature check failed when checking __theorem_split_hypotheses.  Signature: {:?}.", signature);
+
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
                     )));
@@ -5001,6 +5086,36 @@ impl ModuleImportResolver for WasmiRuntimeState {
                 Ok(FuncInstance::alloc_host(
                     signature.clone(),
                     ABI_THEOREM_SPLIT_HYPOTHESES_INDEX,
+                ))
+            }
+            ABI_THEOREM_REGISTER_WEAKEN_NAME => {
+                if !type_checking::check_theorem_register_weaken_signature(
+                    signature,
+                ) {
+                    error!("Signature check failed when checking __theorem_register_weaken.  Signature: {:?}.", signature);
+
+                    return Err(WasmiError::Trap(runtime_trap::host_trap(
+                        RuntimeTrap::SignatureFailure,
+                    )));
+                }
+
+                Ok(FuncInstance::alloc_host(
+                    signature.clone(),
+                    ABI_THEOREM_REGISTER_WEAKEN_INDEX,
+                ))
+            }
+            ABI_THEOREM_SIZE_NAME => {
+                if !type_checking::check_theorem_size_signature(signature) {
+                    error!("Signature check failed when checking __theorem_size.  Signature: {:?}.", signature);
+
+                    return Err(WasmiError::Trap(runtime_trap::host_trap(
+                        RuntimeTrap::SignatureFailure,
+                    )));
+                }
+
+                Ok(FuncInstance::alloc_host(
+                    signature.clone(),
+                    ABI_THEOREM_SIZE_INDEX,
                 ))
             }
             ABI_SYSTEM_IO_WRITE_NAME => {
@@ -5033,7 +5148,8 @@ impl ModuleImportResolver for WasmiRuntimeState {
                     ABI_SYSTEM_IO_WRITE_ERROR_INDEX,
                 ))
             }
-            _otherwise => {
+            otherwise => {
+                error!("Failed to invoke function: {}", otherwise);
                 Err(runtime_trap::host_error(KernelErrorCode::NoSuchFunction))
             }
         }

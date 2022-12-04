@@ -945,14 +945,6 @@ pub(crate) fn check_theorem_register_eta_signature(
     )
 }
 
-/// Checks the signature of the `Theorem.Register.TruthIntroduction` ABI function.
-#[inline]
-pub(crate) fn check_theorem_register_truth_introduction_signature(
-    signature: &Signature,
-) -> bool {
-    check_signature(signature, &[AbiType::Pointer], &Some(AbiType::ErrorCode))
-}
-
 /// Checks the signature of the `Theorem.Register.FalsityElimination` ABI function.
 #[inline]
 pub(crate) fn check_theorem_register_falsity_elimination_signature(
@@ -1179,7 +1171,17 @@ pub(crate) fn check_theorem_split_hypotheses_signature(
 ) -> bool {
     check_signature(
         signature,
-        &[AbiType::Handle, AbiType::Pointer, AbiType::Size],
+        &[AbiType::Handle, AbiType::Pointer, AbiType::Pointer],
+        &Some(AbiType::ErrorCode),
+    )
+}
+
+/// Checks the signature of the `Theorem.Size` ABI function.
+#[inline]
+pub(crate) fn check_theorem_size_signature(signature: &Signature) -> bool {
+    check_signature(
+        signature,
+        &[AbiType::Handle, AbiType::Pointer],
         &Some(AbiType::ErrorCode),
     )
 }

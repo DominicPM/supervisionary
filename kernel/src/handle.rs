@@ -97,7 +97,7 @@ where
 }
 
 /// The upper-bound (exclusive) of the preallocated handles.
-pub const PREALLOCATED_HANDLE_UPPER_BOUND: usize = 28;
+pub const PREALLOCATED_HANDLE_UPPER_BOUND: usize = 29;
 
 /// Returns `true` iff the handle is a pre-allocated handle built into the
 /// kernel.
@@ -273,6 +273,13 @@ pub const PREALLOCATED_HANDLE_TERM_FORALL: Handle<tags::Term> = Handle {
 /// existential quantifier constant lifted into a term.
 pub const PREALLOCATED_HANDLE_TERM_EXISTS: Handle<tags::Term> = Handle {
     handle: 27,
+    marker: PhantomData,
+};
+/// A pre-allocated handle used to refer to the truth introduction theorem.
+pub const PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION: Handle<
+    tags::Theorem,
+> = Handle {
+    handle: 28,
     marker: PhantomData,
 };
 
