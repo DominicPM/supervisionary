@@ -14,9 +14,5 @@
 use libsupervisionary::raw::{system::*, ErrorCode};
 
 fn main() -> Result<(), ErrorCode> {
-    system_io_write("Hello, world!")?;
-
-    system_io_write_error("Error!  Error!")?;
-
     Ok(())
 }

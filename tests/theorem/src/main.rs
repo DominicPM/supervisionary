@@ -11,12 +11,12 @@
 //!
 //! [Dominic Mulligan]: https://dominicpm.github.io
 
-use libsupervisionary::raw::{system::system_io_write, theorem::*, ErrorCode};
+use libsupervisionary::raw::{theorem::*, ErrorCode};
 
 fn main() -> Result<(), ErrorCode> {
-    system_io_write(format!(
-        "PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION: {PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION:?}\n",
-    ))?;
+    assert!(theorem_is_registered(
+        PREALLOCATED_HANDLE_THEOREM_TRUTH_INTRODUCTION
+    ));
 
     Ok(())
 }

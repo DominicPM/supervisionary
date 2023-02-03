@@ -511,13 +511,20 @@ pub(crate) const ABI_THEOREM_SPLIT_CONCLUSION_INDEX: usize = 92;
 // System access system calls.
 ////////////////////////////////////////////////////////////////////////////////
 
-/// The name of the `System.IO.Write` ABI call.
-pub(crate) const ABI_SYSTEM_IO_WRITE_NAME: &str = "__system_io_write";
-/// The name of the `System.IO.WriteError` ABI call.
-pub(crate) const ABI_SYSTEM_IO_WRITE_ERROR_NAME: &str =
-    "__system_io_write_error";
+/// The name of the `System.IO.File.Open` ABI call.
+pub(crate) const ABI_SYSTEM_IO_FOPEN_NAME: &str = "__system_io_fopen";
+/// The name of the `System.IO.File.Close` ABI call.
+pub(crate) const ABI_SYSTEM_IO_FCLOSE_NAME: &str = "__system_io_fclose";
+/// The name of the `System.IO.File.Read` ABI call.
+pub(crate) const ABI_SYSTEM_IO_FREAD_NAME: &str = "__system_io_fread";
+/// The name of the `System.IO.File.Write` ABI call.
+pub(crate) const ABI_SYSTEM_IO_FWRITE_NAME: &str = "__system_io_fwrite";
 
-/// The index of the `System.IO.Write` ABI call.
-pub(crate) const ABI_SYSTEM_IO_WRITE_INDEX: usize = 93;
-/// The index of the `System.IO.WriteError` ABI call.
-pub(crate) const ABI_SYSTEM_IO_WRITE_ERROR_INDEX: usize = 94;
+/// The index of the `System.IO.File.Open` ABI call.
+pub(crate) const ABI_SYSTEM_IO_FOPEN_INDEX: usize = 93;
+/// The index of the `System.IO.File.Close` ABI call.
+pub(crate) const ABI_SYSTEM_IO_FCLOSE_INDEX: usize = 94;
+/// The index of the `System.IO.File.Read` ABI call.
+pub(crate) const ABI_SYSTEM_IO_FREAD_INDEX: usize = 95;
+/// The index of the `System.IO.File.Write` ABI call.
+pub(crate) const ABI_SYSTEM_IO_FWRITE_INDEX: usize = 96;

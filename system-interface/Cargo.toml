@@ -6,3 +6,5 @@ edition     = "2018"
 description = "A system interface for querying and manipulating the system."
 
 [dependencies]
+log = "0.4.17"
+nix = "0.26.2"

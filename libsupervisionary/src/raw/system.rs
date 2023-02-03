@@ -12,39 +12,15 @@
 //! [Dominic Mulligan]<https://dominicpm.github.io>
 
 use crate::raw::ErrorCode;
-use std::convert::TryFrom;
 
 extern "C" {
-    /// Raw ABI binding to the `System.IO.Write` function.
-    fn __system_io_write(bytes: *const u8, length: u64) -> i32;
-    /// Raw ABI binding to the `System.IO.WriteError` function.
-    fn __system_io_write_error(bytes: *const u8, length: u64) -> i32;
-}
-
-pub fn system_io_write<S>(s: S) -> Result<(), ErrorCode>
-where
-    S: Into<String>,
-{
-    let s = s.into();
-    let status = unsafe { __system_io_write(s.as_ptr(), s.len() as u64) };
-
-    if status == 0 {
-        Ok(())
-    } else {
-        Err(ErrorCode::try_from(status).unwrap())
-    }
-}
-
-pub fn system_io_write_error<S>(s: S) -> Result<(), ErrorCode>
-where
-    S: Into<String>,
-{
-    let s = s.into();
-    let status = unsafe { __system_io_write_error(s.as_ptr(), s.len() as u64) };
-
-    if status == 0 {
-        Ok(())
-    } else {
-        Err(ErrorCode::try_from(status).unwrap())
-    }
+    /// Raw ABI binding to the `System.IO.File.Open` function.
+    fn __system_io_fopen(
+        path: *const u8,
+        length: u32,
+        mode: u32,
+        handle: *mut u64,
+    ) -> i32;
+    /// Raw ABI binding to the `System.IO.File.Close` function.
+    fn __system_io_fclose(handle: u64) -> i32;
 }
