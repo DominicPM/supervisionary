@@ -23,7 +23,9 @@
 //! [Nick Spinale]<https://nickspinale.com>
 //! [Arm Research]<http://www.arm.com/research>
 
-use std::{borrow::Borrow, cell::RefCell, fmt::Debug, mem::size_of};
+use std::{
+    borrow::Borrow, cell::RefCell, convert::TryInto, fmt::Debug, mem::size_of,
+};
 
 use byteorder::{ByteOrder, LittleEndian};
 use log::{error, info};
@@ -46,8 +48,10 @@ use crate::{
         ABI_CONSTANT_IS_REGISTERED_INDEX, ABI_CONSTANT_IS_REGISTERED_NAME,
         ABI_CONSTANT_REGISTER_INDEX, ABI_CONSTANT_REGISTER_NAME,
         ABI_CONSTANT_RESOLVE_INDEX, ABI_CONSTANT_RESOLVE_NAME,
-        ABI_SYSTEM_IO_WRITE_ERROR_INDEX, ABI_SYSTEM_IO_WRITE_ERROR_NAME,
-        ABI_SYSTEM_IO_WRITE_INDEX, ABI_SYSTEM_IO_WRITE_NAME,
+        ABI_SYSTEM_IO_FCLOSE_INDEX, ABI_SYSTEM_IO_FCLOSE_NAME,
+        ABI_SYSTEM_IO_FOPEN_INDEX, ABI_SYSTEM_IO_FOPEN_NAME,
+        ABI_SYSTEM_IO_FREAD_INDEX, ABI_SYSTEM_IO_FREAD_NAME,
+        ABI_SYSTEM_IO_FWRITE_INDEX, ABI_SYSTEM_IO_FWRITE_NAME,
         ABI_TERM_FREE_VARIABLES_INDEX, ABI_TERM_FREE_VARIABLES_NAME,
         ABI_TERM_IS_REGISTERED_INDEX, ABI_TERM_IS_REGISTERED_NAME,
         ABI_TERM_REGISTER_APPLICATION_INDEX,
@@ -169,7 +173,8 @@ use crate::{
     system_interface_types::semantic_types,
     type_checking,
 };
-use system_interface::SystemInterface;
+
+use system_interface::{FileHandle, SystemErrorCode, SystemInterface};
 
 ////////////////////////////////////////////////////////////////////////////////
 // The Wasmi runtime state.
@@ -371,6 +376,34 @@ impl WasmiRuntimeState {
         info!("Writing handle {:?} at address {:#x}.", handle, address);
 
         self.write_u64(address, *handle as u64)
+    }
+
+    /// Writes a filehandle to the WASM guest's memory module at a specified
+    /// address.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(RuntimeTrap::MemoryNotRegistered)` if the WASM guest's
+    /// memory module has not been registered with the runtime state.
+    ///
+    /// Returns `Err(RuntimeTrap::MemoryWriteFailed)` if the write to memory at
+    /// address, `address`, failed.
+    #[inline]
+    fn write_file_handle<T, U>(
+        &self,
+        address: T,
+        handle: U,
+    ) -> Result<(), RuntimeTrap>
+    where
+        T: Into<semantic_types::Pointer>,
+        U: Into<FileHandle>,
+    {
+        let handle = handle.into();
+        let address = address.into();
+
+        info!("Writing filehandle {:?} at address {:#x}.", handle, address);
+
+        self.write_u64(address, handle)
     }
 
     /// Writes a collection of handles to the WASM guest's memory module
@@ -3690,27 +3723,86 @@ impl Externals for WasmiRuntimeState {
                     }
                 }
             }
-            ABI_SYSTEM_IO_WRITE_INDEX => {
-                let str_ptr = args.nth::<semantic_types::Pointer>(0);
-                let str_len = args.nth::<semantic_types::Size>(1);
+            ABI_SYSTEM_IO_FOPEN_INDEX => {
+                let path_ptr = args.nth::<semantic_types::Pointer>(0);
+                let path_len = args.nth::<semantic_types::Size>(1);
+                let mode = args.nth::<semantic_types::FileMode>(2);
+                let result_ptr = args.nth::<semantic_types::Pointer>(3);
 
-                let bytes = self.read_bytes(str_ptr, str_len as usize)?;
+                let path = self.read_bytes(path_ptr, path_len as usize)?;
 
-                self.system_interface
-                    .write(unsafe { String::from_utf8_unchecked(bytes) });
+                let Ok(mode) = mode.try_into() else {
+                    return Ok(Some(RuntimeValue::I32(SystemErrorCode::InvalidFileMode as i32)));
+                };
 
-                Ok(Some(RuntimeValue::I32(KernelErrorCode::Success.into())))
+                match self.system_interface.fopen(path, mode) {
+                    Ok(handle) => {
+                        self.write_file_handle(result_ptr, handle)?;
+
+                        Ok(Some(RuntimeValue::I32(
+                            KernelErrorCode::Success.into(),
+                        )))
+                    }
+                    Err(err) => Ok(Some(RuntimeValue::I32(err as i32))),
+                }
             }
-            ABI_SYSTEM_IO_WRITE_ERROR_INDEX => {
-                let str_ptr = args.nth::<semantic_types::Pointer>(0);
-                let str_len = args.nth::<semantic_types::Size>(1);
+            ABI_SYSTEM_IO_FCLOSE_INDEX => {
+                let filehandle = args.nth::<semantic_types::FileHandle>(0);
 
-                let bytes = self.read_bytes(str_ptr, str_len as usize)?;
+                match self.system_interface.fclose(filehandle) {
+                    Ok(()) => Ok(Some(RuntimeValue::I32(
+                        KernelErrorCode::Success.into(),
+                    ))),
+                    Err(err) => Ok(Some(RuntimeValue::I32(err as i32))),
+                }
+            }
+            ABI_SYSTEM_IO_FREAD_INDEX => {
+                let filehandle = args.nth::<semantic_types::FileHandle>(0);
+                let ptr = args.nth::<semantic_types::Pointer>(1);
+                let ptr_len = args.nth::<semantic_types::Size>(2);
+                let count = args.nth::<semantic_types::Size>(3);
+                let result_ptr = args.nth::<semantic_types::Pointer>(4);
 
-                self.system_interface
-                    .write_error(unsafe { String::from_utf8_unchecked(bytes) });
+                let mut buffer = self.read_bytes(ptr, ptr_len as usize)?;
 
-                Ok(Some(RuntimeValue::I32(KernelErrorCode::Success.into())))
+                match self.system_interface.fread(
+                    filehandle,
+                    &mut buffer,
+                    count as usize,
+                ) {
+                    Ok(e) => {
+                        self.write_u64(result_ptr, e as u64)?;
+
+                        Ok(Some(RuntimeValue::I32(
+                            KernelErrorCode::Success.into(),
+                        )))
+                    }
+                    Err(err) => Ok(Some(RuntimeValue::I32(err as i32))),
+                }
+            }
+            ABI_SYSTEM_IO_FWRITE_INDEX => {
+                let filehandle = args.nth::<semantic_types::FileHandle>(0);
+                let ptr = args.nth::<semantic_types::Pointer>(1);
+                let ptr_len = args.nth::<semantic_types::Size>(2);
+                let count = args.nth::<semantic_types::Size>(3);
+                let result_ptr = args.nth::<semantic_types::Pointer>(4);
+
+                let buffer = self.read_bytes(ptr, ptr_len as usize)?;
+
+                match self.system_interface.fwrite(
+                    filehandle,
+                    buffer,
+                    count as usize,
+                ) {
+                    Ok(e) => {
+                        self.write_u64(result_ptr, e as u64)?;
+
+                        Ok(Some(RuntimeValue::I32(
+                            KernelErrorCode::Success.into(),
+                        )))
+                    }
+                    Err(err) => Ok(Some(RuntimeValue::I32(err as i32))),
+                }
             }
             otherwise => Err(runtime_trap::host_trap(
                 RuntimeTrap::NoSuchFunction(otherwise),
@@ -5168,9 +5260,9 @@ impl ModuleImportResolver for WasmiRuntimeState {
                     ABI_THEOREM_SIZE_INDEX,
                 ))
             }
-            ABI_SYSTEM_IO_WRITE_NAME => {
-                if !type_checking::check_system_io_write_signature(signature) {
-                    error!("Signature check failed when checking __system_io_write.  Signature: {:?}.", signature);
+            ABI_SYSTEM_IO_FOPEN_NAME => {
+                if !type_checking::check_system_io_fopen_signature(signature) {
+                    error!("Signature check failed when checking __system_io_fopen.  Signature: {:?}.", signature);
 
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
@@ -5179,14 +5271,12 @@ impl ModuleImportResolver for WasmiRuntimeState {
 
                 Ok(FuncInstance::alloc_host(
                     signature.clone(),
-                    ABI_SYSTEM_IO_WRITE_INDEX,
+                    ABI_SYSTEM_IO_FOPEN_INDEX,
                 ))
             }
-            ABI_SYSTEM_IO_WRITE_ERROR_NAME => {
-                if !type_checking::check_system_io_write_error_signature(
-                    signature,
-                ) {
-                    error!("Signature check failed when checking __system_io_write_error.  Signature: {:?}.", signature);
+            ABI_SYSTEM_IO_FCLOSE_NAME => {
+                if !type_checking::check_system_io_fclose_signature(signature) {
+                    error!("Signature check failed when checking __system_io_fclose.  Signature: {:?}.", signature);
 
                     return Err(WasmiError::Trap(runtime_trap::host_trap(
                         RuntimeTrap::SignatureFailure,
@@ -5195,7 +5285,35 @@ impl ModuleImportResolver for WasmiRuntimeState {
 
                 Ok(FuncInstance::alloc_host(
                     signature.clone(),
-                    ABI_SYSTEM_IO_WRITE_ERROR_INDEX,
+                    ABI_SYSTEM_IO_FCLOSE_INDEX,
+                ))
+            }
+            ABI_SYSTEM_IO_FREAD_NAME => {
+                if !type_checking::check_system_io_fread_signature(signature) {
+                    error!("Signature check failed when checking __system_io_fread.  Signature: {:?}.", signature);
+
+                    return Err(WasmiError::Trap(runtime_trap::host_trap(
+                        RuntimeTrap::SignatureFailure,
+                    )));
+                }
+
+                Ok(FuncInstance::alloc_host(
+                    signature.clone(),
+                    ABI_SYSTEM_IO_FREAD_INDEX,
+                ))
+            }
+            ABI_SYSTEM_IO_FWRITE_NAME => {
+                if !type_checking::check_system_io_fwrite_signature(signature) {
+                    error!("Signature check failed when checking __system_io_fwrite.  Signature: {:?}.", signature);
+
+                    return Err(WasmiError::Trap(runtime_trap::host_trap(
+                        RuntimeTrap::SignatureFailure,
+                    )));
+                }
+
+                Ok(FuncInstance::alloc_host(
+                    signature.clone(),
+                    ABI_SYSTEM_IO_FWRITE_INDEX,
                 ))
             }
             otherwise => {

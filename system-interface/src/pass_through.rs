@@ -15,8 +15,19 @@
 //!
 //! [Dominic Mulligan]<https://dominicpm.github.io>
 
-use super::SystemInterface;
-use std::io::{stderr, stdout, Write};
+use crate::{FileHandle, FileMode, SystemErrorCode, SystemInterface};
+use log::info;
+use nix::libc::{fclose, fopen, fread, fwrite, FILE};
+use std::ffi::{c_void, CString};
+
+////////////////////////////////////////////////////////////////////////////////
+// Constants.
+////////////////////////////////////////////////////////////////////////////////
+
+/// Runtime abort message produced if the file mode conversion fails to produce
+/// a valid C-style string.
+const FILE_MODE_CONVERSION_ERROR_MESSAGE: &str =
+    "Internal invariant failed: file mode conversion failed.";
 
 ////////////////////////////////////////////////////////////////////////////////
 // The dummy type.
@@ -47,15 +58,87 @@ impl PassThroughSystemInterface {
 ////////////////////////////////////////////////////////////////////////////////
 
 impl SystemInterface for PassThroughSystemInterface {
-    /// Writes a string, `s`, to the system's `stdout` file handle.
-    #[inline]
-    fn write(&self, s: String) {
-        stdout().write_all(s.as_bytes()).unwrap();
+    /// "Passthrough" implementation of `fopen` which merely calls through to
+    /// the underlying `libc` implementation of `fopen` on the host's machine.
+    fn fopen(
+        &mut self,
+        path: Vec<u8>,
+        mode: FileMode,
+    ) -> Result<FileHandle, SystemErrorCode> {
+        info!("Called `fopen` with {path:?} in {mode:?}.");
+
+        let path =
+            CString::new(path).map_err(|_| SystemErrorCode::MalformedPath)?;
+        let mode = CString::new(mode.unix_file_mode().as_bytes())
+            .expect(FILE_MODE_CONVERSION_ERROR_MESSAGE);
+
+        /* NB: we should not return the pointer back to user-space but introduce
+          an indirection, via some mapping between `FileHandle` and `*mut File`
+          types...
+        */
+        let file = unsafe { fopen(path.as_ptr(), mode.as_ptr()) };
+
+        if file.is_null() {
+            Err(SystemErrorCode::UnknownFile)
+        } else {
+            Ok(file as u64)
+        }
     }
 
-    /// Writes a string, `s`, to the system's `stderr` file handle.
-    #[inline]
-    fn write_error(&self, s: String) {
-        stderr().write_all(s.as_bytes()).unwrap();
+    /// "Passthrough" implementation of `fclose` which merely calls through to
+    /// the underlying `libc` implementation of `fclose` on the host's machine.
+    fn fclose(&mut self, handle: FileHandle) -> Result<(), SystemErrorCode> {
+        info!("Called `fclose` with {handle}.");
+
+        let handle = handle as *mut FILE;
+
+        let ret = unsafe { fclose(handle) };
+
+        if ret != 0 {
+            Err(SystemErrorCode::FileNotOpen)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// "Passthrough" implementation of `fwrite` which merely calls through to
+    /// the underlying `libc` implementation of `fwrite` on the host's machine.
+    fn fwrite(
+        &mut self,
+        handle: FileHandle,
+        buffer: Vec<u8>,
+        count: usize,
+    ) -> Result<usize, SystemErrorCode> {
+        info!("Called `fwrite` with {handle} and {buffer:?}.");
+
+        let handle = handle as *mut FILE;
+
+        let ret = unsafe {
+            fwrite(
+                buffer.as_ptr() as *const c_void,
+                buffer.len(),
+                count,
+                handle,
+            )
+        };
+
+        Ok(ret)
+    }
+
+    fn fread(
+        &mut self,
+        handle: FileHandle,
+        buffer: &mut [u8],
+        count: usize,
+    ) -> Result<usize, SystemErrorCode> {
+        info!("Called `fread` with {handle} and {buffer:?}.");
+
+        let handle = handle as *mut FILE;
+
+        let ret = unsafe {
+            fread(buffer.as_ptr() as *mut c_void, buffer.len(), count, handle)
+        };
+
+        Ok(ret)
     }
 }

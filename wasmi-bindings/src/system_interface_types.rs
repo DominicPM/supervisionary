@@ -37,6 +37,10 @@ pub(crate) mod semantic_types {
     /// reading-from and writing-to the guest WASM program heap, assuming the
     /// `wasm32-abi`.
     pub type Size = u64;
+    /// A file mode, used for specifying how a file should be opened by `fopen`.
+    pub type FileMode = u32;
+    /// A filehandle.
+    pub type FileHandle = u64;
 }
 
 /// A type capturing semantic types of the ABI, more descriptive than the base
@@ -49,6 +53,10 @@ pub(crate) enum AbiType {
     Name,
     /// An arity for a type-former.
     Arity,
+    /// A file-mode.
+    FileMode,
+    /// A filehandle.
+    FileHandle,
     /// A pointer into the host WASM program's heap.
     Pointer,
     /// A size (or length) of an object appearing in the WASM program's heap.
@@ -71,6 +79,8 @@ impl AbiType {
             AbiType::Pointer => tau == &ValueType::I32,
             AbiType::Size => tau == &ValueType::I64,
             AbiType::ErrorCode => tau == &ValueType::I32,
+            AbiType::FileMode => tau == &ValueType::I32,
+            AbiType::FileHandle => tau == &ValueType::I64,
         }
     }
 }

@@ -1202,24 +1202,59 @@ pub(crate) fn check_theorem_size_signature(signature: &Signature) -> bool {
 // Type-checking system access system calls.
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Checks the signature of the `System.IO.Write` ABI function.
+/// Checks the signature of the `System.IO.File.Open` ABI function.
 #[inline]
-pub(crate) fn check_system_io_write_signature(signature: &Signature) -> bool {
+pub(crate) fn check_system_io_fopen_signature(signature: &Signature) -> bool {
     check_signature(
         signature,
-        &[AbiType::Pointer, AbiType::Size],
+        &[
+            AbiType::Pointer,
+            AbiType::Size,
+            AbiType::FileMode,
+            AbiType::Pointer,
+        ],
         &Some(AbiType::ErrorCode),
     )
 }
 
-/// Checks the signature of the `System.IO.WriteError` ABI function.
+/// Checks the signature of the `System.IO.File.Close` ABI function.
 #[inline]
-pub(crate) fn check_system_io_write_error_signature(
-    signature: &Signature,
-) -> bool {
+pub(crate) fn check_system_io_fclose_signature(signature: &Signature) -> bool {
     check_signature(
         signature,
-        &[AbiType::Pointer, AbiType::Size],
+        &[AbiType::FileHandle],
+        &Some(AbiType::ErrorCode),
+    )
+}
+
+/// Checks the signature of the `System.IO.File.Write` ABI function.
+#[inline]
+pub(crate) fn check_system_io_fwrite_signature(signature: &Signature) -> bool {
+    check_signature(
+        signature,
+        &[
+            AbiType::FileHandle,
+            AbiType::Pointer,
+            AbiType::Size,
+            AbiType::Size,
+            AbiType::Pointer,
+        ],
+        &Some(AbiType::ErrorCode),
+    )
+}
+
+/// Checks the signature of the `System.IO.File.Read` ABI function.
+#[inline]
+pub(crate) fn check_system_io_fread_signature(signature: &Signature) -> bool {
+    check_signature(
+        signature,
+        &[
+            AbiType::FileHandle,
+            AbiType::Pointer,
+            AbiType::Size,
+            AbiType::Size,
+            AbiType::Pointer,
+        ],
         &Some(AbiType::ErrorCode),
     )
 }
